@@ -1,12 +1,13 @@
 #include <iostream>
 
-#include "buscaMinas.hpp"
+#include "minesweeper_board.hpp"
 
 int main(){
 
 std::cout << "Prueba buscaminas 1.0" << std::endl;
 
-buscaMinas board1;
+minesweeper_board buscaminas;
+buscaminas.printBoard();
 
 return 0;
 }
