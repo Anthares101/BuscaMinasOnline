@@ -3,16 +3,15 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <cstdlib>
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <iostream>
-#include <string>
 
-void print_board(std::string board);
+void print_board(char* board);
 
-int main (int argc, char** argv) {
+int main(int argc, char** argv) {
 
 	if(argc < 2) {
 
@@ -26,12 +25,11 @@ int main (int argc, char** argv) {
 	-----------------------------------------------------*/
 	int sd;
 	struct sockaddr_in sockname;
-	std::string buffer;
-	char buffer2[256];
+	char buffer[256];
 	socklen_t len_sockname;
-   fd_set readfds, auxfds;
-   int salida;
-   int fin = 0;
+	fd_set readfds, auxfds;
+	int salida;
+	int fin = 0;
 
 	/* --------------------------------------------------
 		Se abre el socket
@@ -49,7 +47,7 @@ int main (int argc, char** argv) {
 		servidor y el puerto del servicio que solicitamos
 	-------------------------------------------------------------------*/
 	sockname.sin_family = AF_INET;
-	sockname.sin_port = htons(2000);
+	sockname.sin_port = htons(2050);
 	sockname.sin_addr.s_addr =  inet_addr(argv[1]);
 
 	/* ------------------------------------------------------------------
@@ -84,17 +82,15 @@ int main (int argc, char** argv) {
         //Tengo mensaje desde el servidor
         if(FD_ISSET(sd, &auxfds)) {
 
-            bzero(buffer2,sizeof(buffer2));
-            recv(sd,buffer2,sizeof(buffer2),0);
-
-				buffer = buffer2;
+            bzero(buffer, sizeof(buffer));
+            recv(sd, buffer, sizeof(buffer), 0);
 
 				//mensajes desde el servidor
-            if((buffer.find("+Ok.") != std::string::npos) || (buffer.find("-Err.") != std::string::npos)) {
+            if(strstr(buffer, "+Ok.") != NULL || strstr(buffer, "-Err.") != NULL) {
 
 					std::cout << buffer << std::endl;
 
-					if(buffer.find("-Err. Demasiados clientes conectados\n") != std::string::npos)
+					if(strcmp(buffer, "-Err. Demasiados clientes conectados\n") == 0)
 						fin = 1;
 
 				}
@@ -110,15 +106,13 @@ int main (int argc, char** argv) {
 			//He introducido información por teclado
 			else if(FD_ISSET(0,&auxfds)) {
 
-				bzero(buffer2,sizeof(buffer2));
-				fgets(buffer2,sizeof(buffer2), stdin);
+				bzero(buffer, sizeof(buffer));
+				fgets(buffer, sizeof(buffer), stdin);
 
-				buffer = buffer2;
-
-				if(strcmp(buffer.c_str(),"SALIR\n") == 0)
+				if(strcmp(buffer,"SALIR\n") == 0)
 					fin = 1;
 
-				send(sd,buffer2,sizeof(buffer2),0);
+				send(sd, buffer, sizeof(buffer), 0);
 
         }
 
@@ -130,7 +124,7 @@ int main (int argc, char** argv) {
 }
 
 
-void print_board(std::string board) {
+void print_board(char* board) {
 
 	char c = '\0';
 	int j = 1;
@@ -142,7 +136,7 @@ void print_board(std::string board) {
 
 	std::cout << std::endl;
 
-	for(int i = 0; i < board.size(); i++) {
+	for(int i = 0; i < strlen(board); i++) {
 
 		if(i == 0) std::cout << " [0] ";
 
