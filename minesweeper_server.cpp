@@ -10,6 +10,7 @@
 #include <time.h>
 #include <arpa/inet.h>
 
+#include "user.hpp"
 
 #define MSG_SIZE 250
 #define MAX_CLIENTS 30
@@ -20,7 +21,7 @@
  */
 
 void manejador(int signum);
-void salirCliente(int socket, fd_set * readfds, int * numClientes, int arrayClientes[]);
+void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
 
 
 
@@ -36,7 +37,7 @@ int main ( )
 	socklen_t from_len;
     fd_set readfds, auxfds;
     int salida;
-    int arrayClientes[MAX_CLIENTS];
+    User arrayClientes[MAX_CLIENTS];
     int numClientes = 0;
     //contadores
     int i,j,k;
@@ -129,7 +130,7 @@ int main ( )
                             else
                             {
                                 if(numClientes < MAX_CLIENTS){
-                                    arrayClientes[numClientes] = new_sd;
+                                    arrayClientes[numClientes].setSocket_descriptor(new_sd);
                                     numClientes++;
                                     FD_SET(new_sd,&readfds);
 
@@ -159,9 +160,9 @@ int main ( )
                             if(strcmp(buffer,"SALIR\n") == 0){
 
                                 for (j = 0; j < numClientes; j++){
-                                    send(arrayClientes[j], "-Err. Desconexion servidor\n", strlen("-Err. Desconexion servidor\n"),0);
-                                    close(arrayClientes[j]);
-                                    FD_CLR(arrayClientes[j],&readfds);
+                                    send(arrayClientes[j].getSocket_descriptor(), "-Err. Desconexion servidor\n", strlen("-Err. Desconexion servidor\n"),0);
+                                    close(arrayClientes[j].getSocket_descriptor());
+                                    FD_CLR(arrayClientes[j].getSocket_descriptor(),&readfds);
                                 }
                                     close(sd);
                                     exit(-1);
@@ -186,10 +187,10 @@ int main ( )
 
 
                                     //sprintf(identificador,"%d: %s",i,buffer);
-                                    sprintf(identificador,"+Ok, Eres el usuario %d",i);
+                                    sprintf(identificador,"+Ok. Eres el usuario %d",i);
                                     bzero(buffer,sizeof(buffer));
                                     strcpy(buffer,identificador);
-                                    send(arrayClientes[i],buffer,strlen(buffer),0);
+                                    send(arrayClientes[i].getSocket_descriptor(),buffer,strlen(buffer),0);
                                     /*for(j=0; j<numClientes; j++)
                                         if(arrayClientes[j] != i)
                                             send(arrayClientes[j],buffer,strlen(buffer),0);*/
@@ -217,7 +218,7 @@ int main ( )
 
 }
 
-void salirCliente(int socket, fd_set * readfds, int * numClientes, int arrayClientes[]){
+void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]){
 
     char buffer[250];
     int j;
@@ -227,10 +228,10 @@ void salirCliente(int socket, fd_set * readfds, int * numClientes, int arrayClie
 
     //Re-estructurar el array de clientes
     for (j = 0; j < (*numClientes) - 1; j++)
-        if (arrayClientes[j] == socket)
+        if (arrayClientes[j].getSocket_descriptor() == socket)
             break;
     for (; j < (*numClientes) - 1; j++)
-        (arrayClientes[j] = arrayClientes[j+1]);
+        (arrayClientes[j].setSocket_descriptor(arrayClientes[j+1].getSocket_descriptor()));
 
     (*numClientes)--;
 
@@ -239,8 +240,8 @@ void salirCliente(int socket, fd_set * readfds, int * numClientes, int arrayClie
     sprintf(buffer,"+Ok. Usuario desconectado\n");
 
     for(j=0; j<(*numClientes); j++)
-        if(arrayClientes[j] != socket)
-            send(arrayClientes[j],buffer,strlen(buffer),0);
+        if(arrayClientes[j].getSocket_descriptor() != socket)
+            send(arrayClientes[j].getSocket_descriptor(),buffer,strlen(buffer),0);
 
 
 }

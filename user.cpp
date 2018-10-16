@@ -1,8 +1,11 @@
 #include <fstream>
 #include <string>
+#include <iostream>
+#include <cstdlib>
+
 #include "user.hpp"
 
-istream & operator>>(istream & stream, User & user) {
+std::istream & operator>>(std::istream & stream, User & user) {
 
 	std::string login, password, state;
 
@@ -28,7 +31,7 @@ istream & operator>>(istream & stream, User & user) {
 
 }
 
-ostream & operator<<(ostream & stream, const User & user) {
+std::ostream & operator<<(std::ostream & stream, const User & user) {
 
 	stream << user.getLogin() << "\t" << user.getPassword() << "\n";
 
@@ -39,7 +42,7 @@ ostream & operator<<(ostream & stream, const User & user) {
 bool checkUser(std::string filename, const User & user) {
 
 	bool isRegistered = false;
-	ifstream file(filename);
+	std::ifstream file(filename.c_str());
 
 	std::string loginf, passwordf;
 
@@ -63,11 +66,11 @@ bool checkUser(std::string filename, const User & user) {
 int registerUser(std::string filename, const User & user) {
 
 	int retCode;
-	ofstream file;
+	std::ofstream file;
 
 	if(!checkUser(filename, user)) {
 
-		file.open(filename);
+		file.open(filename.c_str());
 
 		file << user;
 
