@@ -61,8 +61,6 @@ int main(int argc, char** argv) {
 		exit(EXIT_FAILURE);
 
 	}
-	else
-		std::cout << "+Ok. Usuario conectado\n";
 
 	//Inicializamos las estructuras
     FD_ZERO(&auxfds);
@@ -90,7 +88,8 @@ int main(int argc, char** argv) {
 
 					std::cout << buffer << std::endl;
 
-					if(strcmp(buffer, "-Err. Demasiados clientes conectados\n") == 0)
+					if((strcmp(buffer, "-Err. Demasiados clientes conectados\n") == 0) ||
+						(strcmp(buffer, "-Err. Desconexion servidor\n")  == 0))
 						fin = 1;
 
 				}
