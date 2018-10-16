@@ -133,21 +133,15 @@ int main ( )
                                     numClientes++;
                                     FD_SET(new_sd,&readfds);
 
-                                    strcpy(buffer, "Bienvenido al Buscaminas online\n");
+                                    printf("Nuevo usuario conectado %d/%d\n", numClientes, MAX_CLIENTS);
+                                    strcpy(buffer, "+Ok. Usuario conectado\n");
 
                                     send(new_sd,buffer,strlen(buffer),0);
-                                    /*
-                                    for(j=0; j<(numClientes-1);j++){
-
-                                        bzero(buffer,sizeof(buffer));
-                                        sprintf(buffer, "Nuevo Cliente conectado: %d\n",new_sd);
-                                        send(arrayClientes[j],buffer,strlen(buffer),0);
-                                    }*/
                                 }
                                 else
                                 {
                                     bzero(buffer,sizeof(buffer));
-                                    strcpy(buffer,"Demasiados clientes conectados\n");
+                                    strcpy(buffer,"-Err. Demasiados clientes conectados\n");
                                     send(new_sd,buffer,strlen(buffer),0);
                                     close(new_sd);
                                 }
@@ -165,7 +159,7 @@ int main ( )
                             if(strcmp(buffer,"SALIR\n") == 0){
 
                                 for (j = 0; j < numClientes; j++){
-                                    send(arrayClientes[j], "Desconexion servidor\n", strlen("Desconexion servidor\n"),0);
+                                    send(arrayClientes[j], "-Err. Desconexion servidor\n", strlen("-Err. Desconexion servidor\n"),0);
                                     close(arrayClientes[j]);
                                     FD_CLR(arrayClientes[j],&readfds);
                                 }
@@ -174,8 +168,7 @@ int main ( )
 
 
                             }
-                            //Mensajes que se quieran mandar a los clientes (implementar)
-
+                        //Mensajes que se quieran mandar a los clientes (implementar)
                         }
                         else{
                             bzero(buffer,sizeof(buffer));
@@ -191,13 +184,15 @@ int main ( )
                                 }
                                 else{
 
-                                    sprintf(identificador,"%d: %s",i,buffer);
+
+                                    //sprintf(identificador,"%d: %s",i,buffer);
+                                    sprintf(identificador,"+Ok, Eres el usuario %d",i);
                                     bzero(buffer,sizeof(buffer));
                                     strcpy(buffer,identificador);
-
-                                    for(j=0; j<numClientes; j++)
+                                    send(arrayClientes[i],buffer,strlen(buffer),0);
+                                    /*for(j=0; j<numClientes; j++)
                                         if(arrayClientes[j] != i)
-                                            send(arrayClientes[j],buffer,strlen(buffer),0);
+                                            send(arrayClientes[j],buffer,strlen(buffer),0);*/
 
 
                                 }
@@ -205,7 +200,7 @@ int main ( )
 
                             }
                             //Si el cliente introdujo ctrl+c
-                            if(recibidos== 0)
+                            if(recibidos == 0)
                             {
                                 printf("El socket %d, ha introducido ctrl+c\n", i);
                                 //Eliminar ese socket
@@ -240,7 +235,8 @@ void salirCliente(int socket, fd_set * readfds, int * numClientes, int arrayClie
     (*numClientes)--;
 
     bzero(buffer,sizeof(buffer));
-    sprintf(buffer,"Desconexión del cliente: %d\n",socket);
+    printf("Desconexión del cliente: %d\n", socket);
+    sprintf(buffer,"+Ok. Usuario desconectado\n");
 
     for(j=0; j<(*numClientes); j++)
         if(arrayClientes[j] != socket)
