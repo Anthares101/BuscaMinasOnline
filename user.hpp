@@ -43,14 +43,14 @@ class User {
 
 		inline void setSocket_descriptor(int sd) { this->socket_descriptor = sd; };
 
+		bool checkUser(std::string filename);
+
+		int registerUser(std::string filename);
+
 };
 
 std::istream & operator>>(std::istream & stream, User & user);
 
 std::ostream & operator<<(std::ostream & stream, const User & user);
-
-bool checkUser(std::string filename, const User & user);
-
-int registerUser(std::string filename, const User & user);
 
 #endif
