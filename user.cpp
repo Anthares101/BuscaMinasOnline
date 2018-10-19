@@ -52,6 +52,35 @@ int User::registerUser(std::string filename) {
 
 }
 
+bool verifyUser(std::string filename) {
+
+	std::ifstream file;
+	std::string loginf, passwordf;
+	bool verified = false;
+
+	if(this->checkUser(filename.c_str())) {
+
+		file.open(filename.c_str());
+
+		while(file >> loginf >> passwordf) {
+
+			if(!loginf.compare(this->getLogin()) && !passwordf.compare(this->getPassword())) {
+
+				verified = true;
+				break;
+
+			}
+
+		}
+
+	}
+
+	file.close();
+
+	return verified;
+
+}
+
 std::istream & operator>>(std::istream & stream, User & user) {
 
 	std::string login, password, state;
