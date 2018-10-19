@@ -45,7 +45,10 @@ class User {
 
 		bool checkUser(std::string filename);
 
+		//returns 0 if registration was successfully done, -1 otherwise
 		int registerUser(std::string filename);
+
+		bool verifyUser(std::string filename);
 
 };
 
