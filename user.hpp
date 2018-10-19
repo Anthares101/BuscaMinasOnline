@@ -16,7 +16,7 @@ class User {
 
 	public:
 
-		inline User() { this->login = "-"; this->password = "-"; this->state = "not_registered"; this->socket_descriptor = -1; };
+		inline User() { this->login = ""; this->password = ""; this->state = "not_registered"; this->socket_descriptor = -1; };
 
 		inline std::string getLogin() const { return this->login; };
 
