@@ -2,6 +2,8 @@
 #define USER_HPP
 
 #include <string>
+#include <cassert>
+#include <iostream>
 
 class User {
 
@@ -10,22 +12,25 @@ class User {
 		std::string login;
 		std::string password;
 		std::string state; //not_registered, registered, in_queue, in_game
+		int socket_descriptor;
 
 	public:
 
-		inline User() { this->login = "-"; this->password = "-"; this->state = "not_registered"; };
+		inline User() { this->login = "-"; this->password = "-"; this->state = "not_registered"; this->socket_descriptor = -1; };
 
-		inline getLogin() const { return this->login; };
+		inline std::string getLogin() const { return this->login; };
 
-		inline getPassword() const { return this->password; };
+		inline std::string getPassword() const { return this->password; };
 
-		inline getState() const { return this->state; };
+		inline std::string getState() const { return this->state; };
 
-		inline setLogin(const std::string newLogin) { this->login = newLogin; };
+		inline int getSocket_descriptor() const { return this->socket_descriptor; };
 
-		inline setPassword(const std::string newPassword) { this->password = newPassword; };
+		inline void setLogin(const std::string newLogin) { this->login = newLogin; };
 
-		inline setState(const std::string newState) {
+		inline void setPassword(const std::string newPassword) { this->password = newPassword; };
+
+		inline void setState(const std::string newState) {
 
 			assert(newState.compare("not_registered") == 0 ||
 					newState.compare("registered") ||
@@ -36,11 +41,13 @@ class User {
 
 		};
 
+		inline void setSocket_descriptor(int sd) { this->socket_descriptor = sd; };
+
 };
 
-istream & operator>>(istream & stream, User & user);
+std::istream & operator>>(std::istream & stream, User & user);
 
-ostream & operator<<(ostream & stream, const User & user);
+std::ostream & operator<<(std::ostream & stream, const User & user);
 
 bool checkUser(std::string filename, const User & user);
 
