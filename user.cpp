@@ -52,7 +52,7 @@ int User::registerUser(std::string filename) {
 
 }
 
-bool verifyUser(std::string filename) {
+bool User::verifyUser(std::string filename) {
 
 	std::ifstream file;
 	std::string loginf, passwordf;
