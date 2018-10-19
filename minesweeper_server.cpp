@@ -215,6 +215,17 @@ int main ( )
                                 			}
                                 			else{//TODO verifica
                                 				arrayClientes[i].setPassword(std::string (information));
+                                				if(arrayClientes[i].verifyUser("userList")){
+                                					arrayClientes[i].setState("registered");
+                                					bzero(buffer,sizeof(buffer));
+                                					sprintf(buffer, "+Ok. Usuario validado");
+                                				}
+                                				else{
+                                					arrayClientes[i].setLogin("");
+                                					arrayClientes[i].setPassword("");
+                                					bzero(buffer,sizeof(buffer));
+                                					sprintf(buffer, "-Err. Error en la validacion");
+                                				}
                                 			}
                                 		}
                                 		else if(arrayClientes[i].getLogin() != "") {
