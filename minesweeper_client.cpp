@@ -9,10 +9,19 @@
 #include <arpa/inet.h>
 #include <iostream>
 
+#include "macros.hpp"
+
 void print_board(char* board);
 
-int main ( )
+int main (int argc, char * argv[])
 {
+
+	if(argc < 2) {
+
+		std::cout << "Error de sintaxis: " << argv[0] << " <ip_servidor>\n";
+		exit(EXIT_FAILURE);
+
+	}
   
 	/*---------------------------------------------------- 
 		Descriptor del socket y buffer de datos                
@@ -44,7 +53,7 @@ int main ( )
 	-------------------------------------------------------------------*/
 	sockname.sin_family = AF_INET;
 	sockname.sin_port = htons(2050);
-	sockname.sin_addr.s_addr =  inet_addr("127.0.0.1");
+	sockname.sin_addr.s_addr =  inet_addr(argv[1]);
 
 	/* ------------------------------------------------------------------
 		Se solicita la conexión con el servidor

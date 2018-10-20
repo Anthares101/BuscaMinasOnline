@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 
 #include "user.hpp"
+#include "macros.hpp"
 
 #define MSG_SIZE 250
 #define MAX_CLIENTS 30
@@ -61,9 +62,12 @@ int main ( )
 	---------------------------------------------------*/
 	sd = socket (AF_INET, SOCK_STREAM, 0);
 	if (sd == -1)
-	{
-		perror("No se puede abrir el socket cliente\n");
-			exit (1);
+	{  
+        std::cout << BRED;
+		perror("- No se puede abrir el socket cliente\n");
+        std::cout << RESET;
+
+		exit (1);
 	}
 
     // Activaremos una propiedad del socket que permitir· que otros
@@ -83,7 +87,9 @@ int main ( )
 
 	if (bind (sd, (struct sockaddr *) &sockname, sizeof (sockname)) == -1)
 	{
-		perror("Error en la operación bind");
+        std::cout << BRED;
+		perror("- Error en la operación bind");
+        std::cout << RESET;
 		exit(1);
 	}
 
@@ -97,7 +103,9 @@ int main ( )
 
 
 		if(listen(sd,1) == -1){
-			perror("Error en la operación de listen");
+            std::cout << BRED;
+			perror("- Error en la operación de listen");
+            std::cout << RESET;
 			exit(1);
 		}
 
@@ -111,6 +119,9 @@ int main ( )
     //Capturamos la señal SIGINT (Ctrl+c)
     signal(SIGINT,manejador);
 
+    std::cout << CLEAR_SCREEN;
+    PLACE(1,25);
+    std::cout << BBLUE << "MINESWEEPER SERVER [" << BGREEN << "ONLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
 	/*-----------------------------------------------------------------------
 		El servidor acepta una petición
 	------------------------------------------------------------------------ */
@@ -132,7 +143,9 @@ int main ( )
                         if( i == sd){
 
                             if((new_sd = accept(sd, (struct sockaddr *)&from, &from_len)) == -1){
-                                perror("Error aceptando peticiones");
+                                std::cout << BRED;
+                                perror("- Error aceptando peticiones");
+                                std::cout << RESET;
                             }
                             else
                             {
@@ -141,7 +154,7 @@ int main ( )
                                     numClientes++;
                                     FD_SET(new_sd,&readfds);
 
-                                    printf("Nuevo usuario conectado %d/%d\n", numClientes, MAX_CLIENTS);
+                                    std::cout << BCYAN << "+ Nuevo usuario conectado " << BYELLOW << "[" << numClientes << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
                                     strcpy(buffer, "+Ok. Usuario conectado\n");
 
                                     send(new_sd,buffer,strlen(buffer),0);
@@ -172,8 +185,11 @@ int main ( )
                                     FD_CLR(arrayClientes[j].getSocket_descriptor(),&readfds);
                                 }
                                     close(sd);
-                                    exit(-1);
+                                    std::cout << CLEAR_SCREEN;
+                                    PLACE(1,25);
+                                    std::cout << BBLUE << "MINESWEEPER SERVER [" << BRED << "OFFLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
 
+                                    exit(-1);
 
                             }
                         //Mensajes que se quieran mandar a los clientes (implementar)
@@ -182,12 +198,11 @@ int main ( )
                         	client = 0;
                         	while(client < numClientes && arrayClientes[client].getSocket_descriptor() != i)
                         		client++;
-
                             bzero(buffer,sizeof(buffer));
 
                             recibidos = recv(i,buffer,sizeof(buffer),0);
                             strBuffer = buffer;
-
+                            
                             if(recibidos > 0){
 
                                 if(strcmp(buffer,"SALIR\n") == 0)
@@ -200,7 +215,7 @@ int main ( )
 	                        		if(strBuffer.substr(0, 8) == "USUARIO " && !(strBuffer = strBuffer.substr(8)).empty()){
 	                        			strBuffer = clearString(strBuffer);
 
-	                        			arrayClientes[client].setLogin(std::string (strBuffer));
+	                        			arrayClientes[client].setLogin(strBuffer);
 	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
@@ -257,7 +272,8 @@ int main ( )
                             //Si el cliente introdujo ctrl+c
                             if(recibidos == 0)
                             {
-                                printf("El socket %d, ha introducido ctrl+c\n", i);
+                                std::cout << BCYAN << "+ El socket " << GREEN << arrayClientes[client].getSocket_descriptor() << BCYAN;
+                                std::cout << ", ha introducido " << BPURPLE << "ctrl+c" << RESET << std::endl;
                                 //Eliminar ese socket
                                 salirCliente(i,&readfds,&numClientes,arrayClientes);
                             }
@@ -268,29 +284,44 @@ int main ( )
 		}
 
 	close(sd);
+
+    PLACE(1,25);
+    std::cout << std::endl << BBLUE << "MINESWEEPER SERVER [" << BRED << "OFFLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
+
 	return 0;
 
 }
 
 void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]){
 
-    char buffer[250];
+    char buffer[MSG_SIZE];
     int j;
+    std::string cliente;
 
     close(socket);
     FD_CLR(socket,readfds);
 
     //Re-estructurar el array de clientes
-    for (j = 0; j < (*numClientes) - 1; j++)
+    for (j = 0; j < (*numClientes) - 1; j++){
         if (arrayClientes[j].getSocket_descriptor() == socket)
             break;
+    }
+
+    cliente = arrayClientes[j].getLogin();
+
     for (; j < (*numClientes) - 1; j++)
-        (arrayClientes[j].setSocket_descriptor(arrayClientes[j+1].getSocket_descriptor()));
+        arrayClientes[j] = arrayClientes[j+1];
 
     (*numClientes)--;
 
+    //Borra el slot de usuario que queda el ultimo
+    arrayClientes[*numClientes] = User();
+
     bzero(buffer,sizeof(buffer));
-    printf("Desconexión del cliente: %d\n", socket);
+    if(!cliente.empty())
+        std::cout << BCYAN << "+ Desconexion del cliente: " << GREEN << cliente << " " << BYELLOW << "[" << *numClientes << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
+    else
+        std::cout << BCYAN << "+ Desconexion del cliente con socket: " << GREEN << socket << " " << BYELLOW << "[" << *numClientes << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
     sprintf(buffer,"+Ok. Usuario desconectado\n");
 
     for(j=0; j<(*numClientes); j++)

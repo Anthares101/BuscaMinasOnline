@@ -50,6 +50,15 @@ class User {
 
 		bool verifyUser(std::string filename);
 
+		inline User & operator=(const User & user){
+			this->setLogin(user.getLogin());
+			this->setState(user.getState());
+			this->setPassword(user.getPassword());
+			this->setSocket_descriptor(user.getSocket_descriptor());
+
+			return *this;
+		}
+
 };
 
 std::istream & operator>>(std::istream & stream, User & user);
