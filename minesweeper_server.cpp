@@ -24,7 +24,6 @@ void manejador(int signum);
 void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
 
 
-
 int main ( )
 {
 
@@ -47,13 +46,14 @@ int main ( )
     int on, ret;
 
     //Para la lectura de comandos
-    char * information;
+    std::string strBuffer;
+
+    //Numero de cliente
+    int client;
 
     //Crea el fichero useList si no existe
     FILE * usersFile;
-    usersFile = fopen("userList", "r");
-    if(usersFile == NULL)
-    	fopen("userList", "w");
+    usersFile = fopen("userList", "a");
     fclose(usersFile);
 	/* --------------------------------------------------
 		Se abre el socket
@@ -125,10 +125,9 @@ int main ( )
 
 
                 for(i=0; i<FD_SETSIZE; i++){
-
                     //Buscamos el socket por el que se ha establecido la comunicación
                     if(FD_ISSET(i, &auxfds)) {
-
+                    	//std::cout<<i<<std::endl;
                         if( i == sd){
 
                             if((new_sd = accept(sd, (struct sockaddr *)&from, &from_len)) == -1){
@@ -179,81 +178,85 @@ int main ( )
                         //Mensajes que se quieran mandar a los clientes (implementar)
                         }
                         else{
+                        	client = 0;
+                        	while(client < numClientes && arrayClientes[client].getSocket_descriptor() != i)
+                        		client++;
+
                             bzero(buffer,sizeof(buffer));
 
                             recibidos = recv(i,buffer,sizeof(buffer),0);
+                            strBuffer = buffer;
 
                             if(recibidos > 0){
 
-                                if(strcmp(buffer,"SALIR\n") == 0){
-
+                                if(strcmp(buffer,"SALIR\n") == 0)
                                     salirCliente(i,&readfds,&numClientes,arrayClientes);
 
+                                
+                                //Si el usuario no ha iniciado sesion aun se tendran en cuenta estos comandos
+                                else if(arrayClientes[client].getState() == "not_registered"){
+	                        		//Comando USUARIO usuario
+	                        		if(strBuffer.substr(0, 8) == "USUARIO " && !(strBuffer = strBuffer.substr(8)).empty()){
+	                        			strBuffer.pop_back();//Elimina el \n
+	                        			strBuffer.push_back(' ');
+	                        			strBuffer.replace(strBuffer.find_first_of(" ", 0), std::string::npos, "");
+
+	                        			arrayClientes[client].setLogin(std::string (strBuffer));
+	                        			if(arrayClientes[client].checkUser("userList")){
+	                        				bzero(buffer,sizeof(buffer));
+	                        				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
+	                        			}
+	                        			else{
+	                        				arrayClientes[client].setLogin("");
+	                        				bzero(buffer,sizeof(buffer));
+	                        				sprintf(buffer, "-Err. Usuario incorrecto, use \"REGISTRO –u usuario –p password\" para registrarse");
+	                        			}
+	                        		}
+	                        		//Comando PASSWORD password
+	                        		else if(strBuffer.substr(0, 9) == "PASSWORD " && !(strBuffer = strBuffer.substr(9)).empty()){
+	                        			strBuffer.pop_back();//Elimina el \n
+	                        			strBuffer.push_back(' ');
+	                        			strBuffer.replace(strBuffer.find_first_of(" ", 0), std::string::npos, "");
+	                        			std::cout<<strBuffer<<std::endl;
+
+	                        			if(arrayClientes[client].getLogin() == ""){
+	                        				bzero(buffer,sizeof(buffer));
+	                        				sprintf(buffer, "-Err. Primero indique su usuario con \"USUARIO usuario\"");
+	                        			}
+	                        			else{
+	                        				arrayClientes[client].setPassword(strBuffer);
+	                        				if(arrayClientes[client].verifyUser("userList")){
+	                        					arrayClientes[client].setState("registered");
+	                        					bzero(buffer,sizeof(buffer));
+	                        					sprintf(buffer, "+Ok. Usuario validado");
+	                        				}
+	                        				else{
+	                        					arrayClientes[client].setLogin("");
+	                        					arrayClientes[client].setPassword("");
+	                        					bzero(buffer,sizeof(buffer));
+	                        					sprintf(buffer, "-Err. Error en la validacion");
+	                        				}
+	                        			}
+	                        		}
+	                        		else if(arrayClientes[client].getLogin() != "") {
+	                        			arrayClientes[client].setLogin("");
+	                        			bzero(buffer,sizeof(buffer));
+	                        			sprintf(buffer, "-Err. Error en la validacion");
+	                        		}
+	                        		else{
+	                            		bzero(buffer,sizeof(buffer));
+	                            		sprintf(buffer, "-Err. Inicie sesion con \"USUARIO usuario\" y despues \"PASSWORD password\"");
+	                        		}
+
+                                	send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);	
                                 }
-                                else{
-                                	//Si el usuario no ha iniciado sesion aun se tendran en cuenta estos comandos
-                                	if(arrayClientes[i].getState() == "not_registered"){
-                                		//Comando USUARIO usuario
-                                		if(strcmp(strtok(buffer, " \n"), "USUARIO") == 0 && (information = strtok(NULL, " \n")) != NULL && arrayClientes[i].getLogin() == ""){
-
-                                			arrayClientes[i].setLogin(std::string (information));
-                                			if(arrayClientes[i].checkUser("userList")){
-                                				bzero(buffer,sizeof(buffer));
-                                				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
-                                			}
-                                			else{
-                                				arrayClientes[i].setLogin("");
-                                				bzero(buffer,sizeof(buffer));
-                                				sprintf(buffer, "-Err. Usuario incorrecto, use \"REGISTRO –u usuario –p password\" para registrarse");
-                                			}
-                                		}
-                                		//Comando PASSWORD password
-                                		else if(strcmp(strtok(buffer, " \n"), "PASSWORD") == 0 && (information = strtok(NULL, " \n")) != NULL){
-                                			if(arrayClientes[i].getLogin() == ""){
-                                				bzero(buffer,sizeof(buffer));
-                                				sprintf(buffer, "-Err. Primero indique su usuario con \"USUARIO usuario\"");
-                                			}
-                                			else{//TODO verifica
-                                				arrayClientes[i].setPassword(std::string (information));
-                                				if(arrayClientes[i].verifyUser("userList")){
-                                					arrayClientes[i].setState("registered");
-                                					bzero(buffer,sizeof(buffer));
-                                					sprintf(buffer, "+Ok. Usuario validado");
-                                				}
-                                				else{
-                                					arrayClientes[i].setLogin("");
-                                					arrayClientes[i].setPassword("");
-                                					bzero(buffer,sizeof(buffer));
-                                					sprintf(buffer, "-Err. Error en la validacion");
-                                				}
-                                			}
-                                		}
-                                		else if(arrayClientes[i].getLogin() != "") {
-                                			arrayClientes[i].setLogin("");
-                                			bzero(buffer,sizeof(buffer));
-                                			sprintf(buffer, "-Err. Error en la validacion");
-                                		}
-                                		else{
-	                                		bzero(buffer,sizeof(buffer));
-	                                		sprintf(buffer, "-Err. Inicie sesion con \"USUARIO usuario\" y despues \"PASSWORD password\"");
-                                		}
-
-                                		send(arrayClientes[i].getSocket_descriptor(),buffer,strlen(buffer),0);
-                                	}
-                                	else{//Si el usuario ha iniciado sesion se tendran en cuenta estos comandos
+                            	else{//Si el usuario ha iniciado sesion se tendran en cuenta estos comandos
                                     //sprintf(identificador,"%d: %s",i,buffer);
                                     sprintf(identificador,"+Ok. Eres el usuario %d",i);
                                     bzero(buffer,sizeof(buffer));
                                     strcpy(buffer,identificador);
-                                    send(arrayClientes[i].getSocket_descriptor(),buffer,strlen(buffer),0);
-                                    /*for(j=0; j<numClientes; j++)
-                                        if(arrayClientes[j] != i)
-                                            send(arrayClientes[j],buffer,strlen(buffer),0);*/
-                                	}
-
-                                }
-
-
+                                    send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
+                            	}
                             }
                             //Si el cliente introdujo ctrl+c
                             if(recibidos == 0)
@@ -262,7 +265,7 @@ int main ( )
                                 //Eliminar ese socket
                                 salirCliente(i,&readfds,&numClientes,arrayClientes);
                             }
-                        }
+                        }///////////////////////////////////////////////////////////////////
                     }
                 }
             }

@@ -13,8 +13,7 @@ bool User::checkUser(std::string filename) {
 	std::string loginf, passwordf;
 
 	while(file >> loginf >> passwordf) {
-
-		if(loginf.compare(this->getLogin())) {
+		if(loginf.compare(this->getLogin()) == 0) {
 
 			isRegistered = true;
 			break;
@@ -64,7 +63,7 @@ bool User::verifyUser(std::string filename) {
 
 		while(file >> loginf >> passwordf) {
 
-			if(!loginf.compare(this->getLogin()) && !passwordf.compare(this->getPassword())) {
+			if(loginf.compare(this->getLogin()) == 0 && passwordf.compare(this->getPassword()) == 0) {
 
 				verified = true;
 				break;

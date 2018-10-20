@@ -86,32 +86,32 @@ int main(int argc, char** argv) {
 				//mensajes desde el servidor
             if(strstr(buffer, "+Ok.") != NULL || strstr(buffer, "-Err.") != NULL) {
 
-					std::cout << buffer << std::endl;
+				std::cout << buffer << std::endl;
 
-					if((strcmp(buffer, "-Err. Demasiados clientes conectados\n") == 0) ||
-						(strcmp(buffer, "-Err. Desconexion servidor\n")  == 0))
-						fin = 1;
-
-				}
-				else {
-
-					print_board(buffer);
-
-					std::cout << std::endl << std::endl;
-
-				}
-
-			}
-			//He introducido información por teclado
-			else if(FD_ISSET(0,&auxfds)) {
-
-				bzero(buffer, sizeof(buffer));
-				fgets(buffer, sizeof(buffer), stdin);
-
-				if(strcmp(buffer,"SALIR\n") == 0)
+				if((strcmp(buffer, "-Err. Demasiados clientes conectados\n") == 0) ||
+				   (strcmp(buffer, "-Err. Desconexion servidor\n")  == 0))
 					fin = 1;
 
-				send(sd, buffer, sizeof(buffer), 0);
+			}
+			else {
+
+				print_board(buffer);
+
+				std::cout << std::endl << std::endl;
+
+			}
+
+		}
+		//He introducido información por teclado
+		else if(FD_ISSET(0, &auxfds)) {
+
+			bzero(buffer, sizeof(buffer));
+			fgets(buffer, sizeof(buffer), stdin);
+
+			if(strcmp(buffer,"SALIR\n") == 0)
+				fin = 1;
+
+			send(sd, buffer, sizeof(buffer), 0);
 
         }
 
