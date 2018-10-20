@@ -22,6 +22,7 @@
 
 void manejador(int signum);
 void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
+std::string clearString(const std::string & str);
 
 
 int main ( )
@@ -197,12 +198,10 @@ int main ( )
                                 else if(arrayClientes[client].getState() == "not_registered"){
 	                        		//Comando USUARIO usuario
 	                        		if(strBuffer.substr(0, 8) == "USUARIO " && !(strBuffer = strBuffer.substr(8)).empty()){
-	                        			strBuffer.pop_back();//Elimina el \n
-	                        			strBuffer.push_back(' ');
-	                        			strBuffer.replace(strBuffer.find_first_of(" ", 0), std::string::npos, "");
+	                        			strBuffer = clearString(strBuffer);
 
 	                        			arrayClientes[client].setLogin(std::string (strBuffer));
-	                        			if(arrayClientes[client].checkUser("userList")){
+	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
 	                        			}
@@ -214,10 +213,7 @@ int main ( )
 	                        		}
 	                        		//Comando PASSWORD password
 	                        		else if(strBuffer.substr(0, 9) == "PASSWORD " && !(strBuffer = strBuffer.substr(9)).empty()){
-	                        			strBuffer.pop_back();//Elimina el \n
-	                        			strBuffer.push_back(' ');
-	                        			strBuffer.replace(strBuffer.find_first_of(" ", 0), std::string::npos, "");
-	                        			std::cout<<strBuffer<<std::endl;
+	                        			strBuffer = clearString(strBuffer);
 
 	                        			if(arrayClientes[client].getLogin() == ""){
 	                        				bzero(buffer,sizeof(buffer));
@@ -225,7 +221,7 @@ int main ( )
 	                        			}
 	                        			else{
 	                        				arrayClientes[client].setPassword(strBuffer);
-	                        				if(arrayClientes[client].verifyUser("userList")){
+	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){
 	                        					arrayClientes[client].setState("registered");
 	                        					bzero(buffer,sizeof(buffer));
 	                        					sprintf(buffer, "+Ok. Usuario validado");
@@ -310,4 +306,14 @@ void manejador (int signum){
     signal(SIGINT,manejador);
 
     //Implementar lo que se desee realizar cuando ocurra la excepción de ctrl+c en el servidor
+}
+
+std::string clearString(const std::string & str){ //Limpia una cadena para quitar los \n e ignorar lo que haya mas alla de un espacio
+	std::string outStr = str;
+	int pos;
+
+	if((pos = outStr.find_first_of(" \n", 0)) != std::string::npos)
+		outStr.replace(pos, std::string::npos, "");
+	
+	return outStr;
 }
