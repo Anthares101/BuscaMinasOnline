@@ -249,14 +249,57 @@ int main ( )
 	                        				}
 	                        			}
 	                        		}
-	                        		else if(arrayClientes[client].getLogin() != "") {
+	                        		else if(arrayClientes[client].getLogin() != "") {//Se espera PASSWORD
 	                        			arrayClientes[client].setLogin("");
 	                        			bzero(buffer,sizeof(buffer));
 	                        			sprintf(buffer, "-Err. Error en la validacion");
 	                        		}
+	                        		else if(strBuffer.substr(0, 9) == "REGISTRO " && !(strBuffer = strBuffer.substr(9)).empty()){
+	                        			int pos;
+	                        			std::string userLogin = "";
+	                        			std::string password = "";
+
+	                        			if(strBuffer.substr(0, 3) == "-u " && !(strBuffer = strBuffer.substr(3)).empty()){
+	                        				userLogin = clearString(strBuffer);
+
+	                        				if((pos = strBuffer.find(" -p ")) !=  std::string::npos){
+	                        					password = strBuffer.substr(pos+4);
+	                        					password = clearString(password);
+	                        				}
+	                        			}
+
+	                        			else if(strBuffer.substr(0, 3) == "-p " && !(strBuffer = strBuffer.substr(3)).empty()){
+	                        				password = clearString(strBuffer);
+
+	                        				if((pos = strBuffer.find(" -u ")) !=  std::string::npos){
+	                        					userLogin = strBuffer.substr(pos+4);
+	                        					userLogin = clearString(userLogin);
+	                        				}
+	                        			}
+
+	                        			if(!userLogin.empty() && !password.empty()){
+	                        				arrayClientes[client].setLogin(userLogin);
+	                        				arrayClientes[client].setPassword(password);
+	                        				if(arrayClientes[client].registerUser("userList") == 0){
+
+	                        					arrayClientes[client].setState("registered");
+	                        					sprintf(buffer, "+Ok. Usuario registrado, sesion iniciada");
+
+	                        				}
+	                        				else{
+	                        					arrayClientes[client].setLogin("");
+	                        					arrayClientes[client].setPassword("");
+	                        					sprintf(buffer, "-Err. Ese nombre de usuario ya existe");
+	                        				}
+	                        			}
+	                        			else{
+	                        				bzero(buffer,sizeof(buffer));
+	                        				sprintf(buffer, "-Err. Registrese mediante \"REGISTRO -u usuario -p password\"");
+	                        			}
+	                        		}
 	                        		else{
 	                            		bzero(buffer,sizeof(buffer));
-	                            		sprintf(buffer, "-Err. Inicie sesion con \"USUARIO usuario\" y despues \"PASSWORD password\"");
+	                            		sprintf(buffer, "-Err. Inicie sesion con \"USUARIO usuario\" y despues \"PASSWORD password\" o registrese con \"REGISTRO -u usuario -p password\"");
 	                        		}
 
                                 	send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);	
