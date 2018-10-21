@@ -27,6 +27,7 @@ void manejador(int signum);
 void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
 int idPartida(minesweeper_board arrayTableros[], int playersd);
 std::string clearString(const std::string & str);
+bool userAlreadyConnected(int client, int numClientes, User arrayClientes[]);
 
 
 int main ( )
@@ -223,11 +224,11 @@ int main ( )
 	                        			strBuffer = clearString(strBuffer);
 
 	                        			arrayClientes[client].setLogin(strBuffer);
-	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){
+	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){//Usuario correcto
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
 	                        			}
-	                        			else{
+	                        			else{//El usuario no existe
 	                        				arrayClientes[client].setLogin("");
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Usuario incorrecto, use \"REGISTRO –u usuario –p password\" para registrarse");
@@ -237,18 +238,26 @@ int main ( )
 	                        		else if(strBuffer.substr(0, 9) == "PASSWORD " && !(strBuffer = strBuffer.substr(9)).empty()){
 	                        			strBuffer = clearString(strBuffer);
 
-	                        			if(arrayClientes[client].getLogin() == ""){
+	                        			if(arrayClientes[client].getLogin() == ""){ //Se ha puesto PASSWORD antes de USUARIO
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Primero indique su usuario con \"USUARIO usuario\"");
 	                        			}
 	                        			else{
 	                        				arrayClientes[client].setPassword(strBuffer);
-	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){
-	                        					arrayClientes[client].setState("registered");
-	                        					bzero(buffer,sizeof(buffer));
-	                        					sprintf(buffer, "+Ok. Usuario validado");
+	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){//Contraseña y usuario correctos
+	                        					if(!userAlreadyConnected(client, numClientes, arrayClientes)){//El login que inicia sesion no tiene una sesion iniciada
+		                        					arrayClientes[client].setState("registered");
+		                        					bzero(buffer,sizeof(buffer));
+		                        					sprintf(buffer, "+Ok. Usuario validado");
+	                        					}
+	                        					else{
+	                        						arrayClientes[client].setLogin("");
+	                        						arrayClientes[client].setPassword("");
+	                        						bzero(buffer,sizeof(buffer));
+		                        					sprintf(buffer, "-Err. La cuenta de usuario a la que intenta acceder tiene una sesion activa");
+	                        					}
 	                        				}
-	                        				else{
+	                        				else{//Contraseña incorrecta
 	                        					arrayClientes[client].setLogin("");
 	                        					arrayClientes[client].setPassword("");
 	                        					bzero(buffer,sizeof(buffer));
@@ -492,13 +501,6 @@ void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[])
     arrayTableros[*partidas] = minesweeper_board();
 }
 
-void manejador (int signum){
-    printf("\nSe ha recibido la señal sigint\n");
-    signal(SIGINT,manejador);
-
-    //Implementar lo que se desee realizar cuando ocurra la excepción de ctrl+c en el servidor
-}
-
 std::string clearString(const std::string & str){ //Limpia una cadena para quitar los \n e ignorar lo que haya mas alla de un espacio
 	std::string outStr = str;
 	int pos;
@@ -507,4 +509,21 @@ std::string clearString(const std::string & str){ //Limpia una cadena para quita
 		outStr.replace(pos, std::string::npos, "");
 
 	return outStr;
+}
+
+//Comprueba si un login tiene una sesion iniciada. client: Index del usuario que quiere conectar, user: nombre del login que se quiere usar
+bool userAlreadyConnected(int client, int numClientes, User arrayClientes[]){
+	for(int i = 0; i < numClientes; i++){
+		if(client != i && arrayClientes[i].getLogin() == arrayClientes[client].getLogin())
+			return true;
+	}
+
+	return false;
+}
+
+void manejador (int signum){
+    printf("\nSe ha recibido la señal sigint\n");
+    signal(SIGINT,manejador);
+
+    //Implementar lo que se desee realizar cuando ocurra la excepción de ctrl+c en el servidor
 }
