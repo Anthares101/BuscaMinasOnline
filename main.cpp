@@ -10,7 +10,7 @@ int main(){
 
 	std::cout << "Prueba buscaminas 1.0" << std::endl << std::endl;
 
-	minesweeper_board buscaminas;
+	minesweeper_board buscaminas(0, 1);
 	buscaminas.printBoard();
 
 	

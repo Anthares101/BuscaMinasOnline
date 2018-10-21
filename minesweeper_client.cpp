@@ -11,6 +11,8 @@
 
 #include "macros.hpp"
 
+#define MSG_SIZE 250
+
 void print_board(char* board);
 
 int main (int argc, char * argv[])
@@ -28,7 +30,7 @@ int main (int argc, char * argv[])
 	-----------------------------------------------------*/
 	int sd;
 	struct sockaddr_in sockname;
-	char buffer[250];
+	char buffer[MSG_SIZE];
 	socklen_t len_sockname;
     fd_set readfds, auxfds;
     int salida;
