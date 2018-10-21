@@ -145,12 +145,7 @@ bool minesweeper_board::revealBox(std::string fila, std::string columna){
 
 	}
 
-	if(this->_turno) {
-		this->_turno = false;
-	}
-	else {
-		this->_turno = true;
-	}
+	changeTurn();
 
 	return true;
 }
@@ -186,19 +181,18 @@ bool minesweeper_board::revealBox(int x, int y){
 
 	}
 
-	if(this->_turno) {
-		this->_turno = false;
-	}
-	else {
-		this->_turno = true;
-	}
+	changeTurn();
 
 	return true;
 }
 
-bool minesweeper_board::turno1(int playersd) {
+bool minesweeper_board::myTurn(int playersd) {
 
-	if(playersd == this->get_player1()) {
+	if(playersd == this->get_player1() && this->get_turno() == true) {
+		return true;
+	}
+
+	if(playersd == this->get_player2() && this->get_turno() == false) {
 		return true;
 	}
 
@@ -218,12 +212,7 @@ void minesweeper_board::set_flagBox(std::string fila, std::string columna, int p
 		board[x][y].setFlag(1);
 	}
 
-	if(this->_turno) {
-		this->_turno = false;
-	}
-	else {
-		this->_turno = true;
-	}
+	changeTurn();
 }
 
 std::string minesweeper_board::board2string() const{

@@ -10,6 +10,8 @@
 #include <time.h>
 #include <arpa/inet.h>
 
+#include <unistd.h>
+
 #include "user.hpp"
 #include "minesweeper_board.hpp"
 #include "macros.hpp"
@@ -28,7 +30,7 @@ void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayCli
 int idPartida(minesweeper_board arrayTableros[], int playersd);
 void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[]);
 std::string clearString(const std::string & str);
-
+bool userAlreadyConnected(int client, int numClientes, User arrayClientes[]);
 
 int main ( )
 {
@@ -224,18 +226,18 @@ int main ( )
 	                        			strBuffer = clearString(strBuffer);
 
 	                        			arrayClientes[client].setLogin(strBuffer);
-	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){
+	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){//Usuario Correcto
                                             bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
 	                        			}
-	                        			else{
+	                        			else{//El usuario no existe
                                             arrayClientes[client].setLogin("");
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Usuario incorrecto, use \"REGISTRO –u usuario –p password\" para registrarse");
 	                        			}
 	                        		}
 	                        		//Comando PASSWORD password
-	                        		else if(strBuffer.substr(0, 9) == "PASSWORD " && !(strBuffer = strBuffer.substr(9)).empty()){
+	                        		else if(strBuffer.substr(0, 9) == "PASSWORD " && !(strBuffer = strBuffer.substr(9)).empty()){//Se ha puesto PASSWORD antes de USUARIO
 	                        			strBuffer = clearString(strBuffer);
 
 	                        			if(arrayClientes[client].getLogin() == ""){
@@ -244,12 +246,21 @@ int main ( )
 	                        			}
 	                        			else{
 	                        				arrayClientes[client].setPassword(strBuffer);
-	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){
-                                                arrayClientes[client].setState("registered");
-                                                bzero(buffer,sizeof(buffer));
-                                                sprintf(buffer, "+Ok. Usuario validado");
+
+	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){//Contraseña y usuario correctos
+                                                if(!userAlreadyConnected(client, numClientes, arrayClientes)){//El login que inicia sesion no tiene una sesion iniciada
+		                        					arrayClientes[client].setState("registered");
+		                        					bzero(buffer,sizeof(buffer));
+		                        					sprintf(buffer, "+Ok. Usuario validado");
+	                        					}
+	                        					else{
+	                        						arrayClientes[client].setLogin("");
+	                        						arrayClientes[client].setPassword("");
+	                        						bzero(buffer,sizeof(buffer));
+		                        					sprintf(buffer, "-Err. La cuenta de usuario a la que intenta acceder tiene una sesion activa");
+	                        					}
                                             }
-                                            else{
+                                            else{//Contraseña incorrecta
                                                 arrayClientes[client].setLogin("");
                                                 arrayClientes[client].setPassword("");
                                                 bzero(buffer,sizeof(buffer));
@@ -336,12 +347,12 @@ int main ( )
                                                 std::cout << BCYAN << "+ Partida iniciada: " << BYELLOW << arrayClientes[client].getLogin() << BRED << " VS " << BYELLOW << arrayClientes[z].getLogin() << RESET << std::endl;
 
                                                 bzero(buffer,sizeof(buffer));
-                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", arrayClientes[client].getLogin().c_str());
+                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", (arrayClientes[client].getLogin()).c_str());
 
                                                 send(arrayClientes[z].getSocket_descriptor(),buffer,strlen(buffer),0);
 
                                                 bzero(buffer,sizeof(buffer));
-                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", arrayClientes[z].getLogin().c_str());
+                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", (arrayClientes[z].getLogin()).c_str());
 
                                                 send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
 
@@ -349,12 +360,10 @@ int main ( )
                                                 arrayTableros[partida].set_player1(arrayClientes[client].getSocket_descriptor());
                                                 arrayTableros[partida].set_player2(arrayClientes[z].getSocket_descriptor());
 
+                                                usleep(1000);//USAR SALTOS DE LINEA EN LOS MENSAJES DEL SERVER AL CLIENTE PARA EVITAR PROBLEMA CON BUFFER
                                                 bzero(buffer,sizeof(buffer));
                                                 strcpy(buffer, arrayTableros[partida].board2string().c_str());
                                                 send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
-
-                                                bzero(buffer,sizeof(buffer));
-                                                strcpy(buffer, arrayTableros[partida].board2string().c_str());
                                                 send(arrayClientes[z].getSocket_descriptor(),buffer,strlen(buffer),0);
 
                                                 partida++;
@@ -374,7 +383,7 @@ int main ( )
 
                                     match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
 
-                                    if(strBuffer.substr(0, 10) == "DESCUBRIR " && !(strBuffer = strBuffer.substr(10)).empty() && arrayTableros[match].turno1(arrayClientes[client].getSocket_descriptor())) {
+                                    if(strBuffer.substr(0, 10) == "DESCUBRIR " && arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()) {
 
                                         Z = strBuffer.substr(0, 1);
                                         x = strBuffer.substr(2);
@@ -400,12 +409,10 @@ int main ( )
                                             send(arrayTableros[match].get_player1(),buffer,strlen(buffer),0);
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
 
+                                            usleep(1000);//USAR SALTOS DE LINEA EN LOS MENSAJES DEL SERVER AL CLIENTE PARA EVITAR PROBLEMA CON BUFFER
                                             bzero(buffer,sizeof(buffer));
                                             strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player1(),buffer,strlen(buffer),0);
-
-                                            bzero(buffer,sizeof(buffer));
-                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
 
                                             //POSIBLE FUNCION
@@ -425,7 +432,7 @@ int main ( )
                                             borrarPartida(match, &partida, arrayTableros);
                                         }
                                     }
-                                    else if(strBuffer.substr(0, 10) == "DESCUBRIR " && !(strBuffer = strBuffer.substr(10)).empty() && !arrayTableros[match].turno1(arrayClientes[client].getSocket_descriptor())) {
+                                    else if(strBuffer.substr(0, 10) == "DESCUBRIR " && !arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()) {
 
                                         bzero(buffer,sizeof(buffer));
                                         sprintf(buffer, "-Err. Es el turno del otro jugador\n");
@@ -526,6 +533,15 @@ void manejador (int signum){
     signal(SIGINT,manejador);
 
     //Implementar lo que se desee realizar cuando ocurra la excepción de ctrl+c en el servidor
+}
+
+//Comprueba si un login tiene una sesion iniciada. client: Index del usuario que quiere conectar, user: nombre del login que se quiere usar
+bool userAlreadyConnected(int client, int numClientes, User arrayClientes[]){
+	for(int i = 0; i < numClientes; i++){
+		if(client != i && arrayClientes[i].getLogin() == arrayClientes[client].getLogin())
+			return true;
+	}
+ 	return false;
 }
 
 std::string clearString(const std::string & str){ //Limpia una cadena para quitar los \n e ignorar lo que haya mas alla de un espacio
