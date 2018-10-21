@@ -224,11 +224,11 @@ int main ( )
 
 	                        			arrayClientes[client].setLogin(strBuffer);
 	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){
-	                        				bzero(buffer,sizeof(buffer));
+                                            bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
 	                        			}
 	                        			else{
-	                        				arrayClientes[client].setLogin("");
+                                            arrayClientes[client].setLogin("");
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Usuario incorrecto, use \"REGISTRO –u usuario –p password\" para registrarse");
 	                        			}
@@ -238,26 +238,26 @@ int main ( )
 	                        			strBuffer = clearString(strBuffer);
 
 	                        			if(arrayClientes[client].getLogin() == ""){
-	                        				bzero(buffer,sizeof(buffer));
+                                            bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Primero indique su usuario con \"USUARIO usuario\"");
 	                        			}
 	                        			else{
 	                        				arrayClientes[client].setPassword(strBuffer);
 	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){
-	                        					arrayClientes[client].setState("registered");
-	                        					bzero(buffer,sizeof(buffer));
-	                        					sprintf(buffer, "+Ok. Usuario validado");
-	                        				}
-	                        				else{
-	                        					arrayClientes[client].setLogin("");
-	                        					arrayClientes[client].setPassword("");
-	                        					bzero(buffer,sizeof(buffer));
-	                        					sprintf(buffer, "-Err. Error en la validacion");
-	                        				}
-	                        			}
-	                        		}
-	                        		else if(arrayClientes[client].getLogin() != "") {//Se espera PASSWORD
-	                        			arrayClientes[client].setLogin("");
+                                                arrayClientes[client].setState("registered");
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "+Ok. Usuario validado");
+                                            }
+                                            else{
+                                                arrayClientes[client].setLogin("");
+                                                arrayClientes[client].setPassword("");
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "-Err. Error en la validacion");
+                                            }
+                                        }
+                                    }
+                                    else if(arrayClientes[client].getLogin() != "") {//Se espera PASSWORD
+                                        arrayClientes[client].setLogin("");
 	                        			bzero(buffer,sizeof(buffer));
 	                        			sprintf(buffer, "-Err. Error en la validacion");
 	                        		}

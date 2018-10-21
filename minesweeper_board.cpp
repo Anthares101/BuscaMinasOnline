@@ -7,6 +7,7 @@
 #include <map>
 #include <iomanip>
 #include <cctype>
+#include <string>
 
 #include "minesweeper_board.hpp"
 #include "minesweeper_box.hpp"
@@ -192,6 +193,38 @@ void minesweeper_board::set_flagBox(std::string fila, std::string columna, int p
 	else if(player == this->get_player2()){
 		board[x][y].setFlag(1);
 	}
+}
+
+std::string minesweeper_board::board2string() const{
+	std::string strBoard = "";
+
+	for(int i=0; i<get_boardRows(); i++){
+		if(!strBoard.empty()){
+			strBoard.pop_back();
+			strBoard.push_back(';');
+		}
+		for(int j=0; j<get_boardCols(); j++)
+
+			if(isSecretBox(i,j)){
+				if(get_flagsBox(i, j, this->get_player1()) && get_flagsBox(i, j, this->get_player2()))
+					strBoard += "AB,";
+				else if(get_flagsBox(i, j, this->get_player1()))
+					strBoard += "A,";
+				else if(get_flagsBox(i, j, this->get_player2()))
+					strBoard += "B,";
+				else
+					strBoard += "-,";
+			}
+			else if(!isSafeBox(i, j))
+				strBoard +="*,";
+			else
+				strBoard += get_minesNearBox(i, j) + ",";
+	}
+
+	strBoard.pop_back();
+	strBoard.push_back(';');
+
+	return strBoard;
 }
 
 bool minesweeper_board::endGame(int player) const{

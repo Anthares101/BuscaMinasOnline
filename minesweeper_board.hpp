@@ -47,7 +47,7 @@ class minesweeper_board{
 		bool revealBox(std::string fila, std::string columna);
 		bool revealBox(int x, int y);
 		void printBoard() const;
-		//char* board2string(); hay que codificarla
+		std::string board2string() const;
 
 		bool endGame(int player) const;
 };
