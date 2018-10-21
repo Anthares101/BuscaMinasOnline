@@ -4,6 +4,10 @@
 #define _MINESWEEPER_BOARD_HPP_
 
 #include <vector>
+#include <utility>
+#include <map>
+#include <iomanip>
+#include <string>
 
 #include "minesweeper_box.hpp"
 
@@ -12,12 +16,17 @@ class minesweeper_board{
 		//Attributes
 		std::vector< std::vector<minesweeper_box> > board; //Empty game board
 		int _player1, _player2;
+		std::map <std::string, int> _columnas;
 
 	public:
 		//Builder
 		minesweeper_board(int player1 = -1, int player2 = -1);
 
 		//Public Methods
+		void coordinates(std::string fila, std::string columna, int * x, int * y);
+
+		bool checkCoordinates(std::string fila, std::string columna);
+
 		inline void putMineBox(int x, int y){board[x][y].putMine();};
 		inline void set_minesNearBox(int x, int y, int count){board[x][y].set_minesNear(count);};
 
@@ -34,7 +43,8 @@ class minesweeper_board{
 		inline bool isSafeBox(int x, int y) const{return board[x][y].isSafe();};
 		inline bool isSecretBox(int x, int y) const{return board[x][y].isSecret();};
 
-		void set_flagBox(int x, int y, int player);
+		void set_flagBox(std::string fila, std::string columna, int player);
+		bool revealBox(std::string fila, std::string columna);
 		bool revealBox(int x, int y);
 		void printBoard() const;
 		//char* board2string(); hay que codificarla

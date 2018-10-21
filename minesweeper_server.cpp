@@ -300,7 +300,7 @@ int main ( )
 	                        					sprintf(buffer, "-Err. Ese nombre de usuario ya existe");
 	                        				}
 	                        			}
-	                        			else{
+                                        else{
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Registrese mediante \"REGISTRO -u usuario -p password\"");
 	                        			}
@@ -348,13 +348,14 @@ int main ( )
                                                 arrayTableros[partida].set_player1(arrayClientes[client].getSocket_descriptor());
                                                 arrayTableros[partida].set_player2(arrayClientes[z].getSocket_descriptor());
 
-                                                partida++; std::cout << partida << std::endl;
+                                                partida++;
                                             }
                                         }
                                     }
                                     else{
                                         bzero(buffer,sizeof(buffer));
                                         sprintf(buffer, "-Err. Busque contrincante con el comando \"INICIAR-PARTIDA\"");
+                                        send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
                                     }
                             	}
                                 //Si el usuario esta in_game se tendran en cuenta estos comandos
