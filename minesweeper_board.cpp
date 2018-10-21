@@ -7,6 +7,7 @@
 #include <map>
 #include <iomanip>
 #include <cctype>
+#include <sstream>
 
 #include "minesweeper_board.hpp"
 #include "minesweeper_box.hpp"
@@ -17,10 +18,11 @@ minesweeper_board::minesweeper_board(int player1, int player2){
 	board = std::vector< std::vector<minesweeper_box> >(10, std::vector< minesweeper_box >(10)); //10x10 minesweeper board
 	_player1 = player1;
 	_player2 = player2;
+	_turno = true;
 
 	this->_columnas.insert(columna("A", 0));
 	this->_columnas.insert(columna("B", 1));
-
+	this->_columnas.insert(columna("C", 2));
 	this->_columnas.insert(columna("D", 3));
 	this->_columnas.insert(columna("E", 4));
 	this->_columnas.insert(columna("F", 5));
@@ -143,6 +145,13 @@ bool minesweeper_board::revealBox(std::string fila, std::string columna){
 
 	}
 
+	if(this->_turno) {
+		this->_turno = false;
+	}
+	else {
+		this->_turno = true;
+	}
+
 	return true;
 }
 
@@ -177,7 +186,23 @@ bool minesweeper_board::revealBox(int x, int y){
 
 	}
 
+	if(this->_turno) {
+		this->_turno = false;
+	}
+	else {
+		this->_turno = true;
+	}
+
 	return true;
+}
+
+bool minesweeper_board::turno1(int playersd) {
+
+	if(playersd == this->get_player1()) {
+		return true;
+	}
+
+	return false;
 }
 
 void minesweeper_board::set_flagBox(std::string fila, std::string columna, int player){
@@ -191,6 +216,13 @@ void minesweeper_board::set_flagBox(std::string fila, std::string columna, int p
 	}
 	else if(player == this->get_player2()){
 		board[x][y].setFlag(1);
+	}
+
+	if(this->_turno) {
+		this->_turno = false;
+	}
+	else {
+		this->_turno = true;
 	}
 }
 

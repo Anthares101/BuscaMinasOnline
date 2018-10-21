@@ -46,7 +46,7 @@ int main ( )
     minesweeper_board arrayTableros[MAX_PARTIDAS];
     int numClientes = 0;
     //contadores
-    int i,j,k;
+    int i,j,k, cont;
 	int recibidos;
     char identificador[MSG_SIZE];
 
@@ -374,7 +374,7 @@ int main ( )
 
                                     match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
 
-                                    if(strBuffer.substr(0, 10) == "DESCUBRIR " && !(strBuffer = strBuffer.substr(10)).empty()) {
+                                    if(strBuffer.substr(0, 10) == "DESCUBRIR " && !(strBuffer = strBuffer.substr(10)).empty() && arrayTableros[match].turno1(arrayClientes[client].getSocket_descriptor())) {
 
                                         Z = strBuffer.substr(0, 1);
                                         x = strBuffer.substr(2);
@@ -390,6 +390,7 @@ int main ( )
                                             bzero(buffer,sizeof(buffer));
                                             strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
+
                                         }
                                         //la casilla tenia mina
                                         else {
@@ -407,14 +408,28 @@ int main ( )
                                             strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
 
-                                            arrayClientes[arrayTableros[match].get_player1()].setState("registered");
-                                            arrayClientes[arrayTableros[match].get_player2()].setState("registered");
+                                            //POSIBLE FUNCION
+                                            for(cont = 0; cont < MAX_CLIENTS; cont++) {
+                                                if((arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player2() && cont != client) ||
+                                                   (arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player1() && cont != client)) {
+                                                    break;
+                                                }
+                                            }
 
-                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[arrayTableros[match].get_player1()].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[arrayTableros[match].get_player2()].getLogin() << RESET << std::endl;
+                                            arrayClientes[client].setState("registered");
+                                            arrayClientes[cont].setState("registered");
+
+                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[cont].getLogin() << RESET << std::endl;
 
                                             //resetear el tablero de esta partida
                                             borrarPartida(match, &partida, arrayTableros);
                                         }
+                                    }
+                                    else if(strBuffer.substr(0, 10) == "DESCUBRIR " && !(strBuffer = strBuffer.substr(10)).empty() && !arrayTableros[match].turno1(arrayClientes[client].getSocket_descriptor())) {
+
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "-Err. Es el turno del otro jugador\n");
+                                        send(arrayClientes[client].getSocket_descriptor(), buffer, strlen(buffer), 0);
                                     }
                                 }
                             }

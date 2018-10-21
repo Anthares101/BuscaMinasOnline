@@ -123,7 +123,7 @@ int main (int argc, char * argv[])
 
 void print_board(char* board) {
 
-	std::string c;
+	std::string c = "";
 	int j = 1;
 
 	std::cout << "     ";

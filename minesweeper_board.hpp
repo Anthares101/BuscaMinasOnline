@@ -17,6 +17,7 @@ class minesweeper_board{
 		std::vector< std::vector<minesweeper_box> > board; //Empty game board
 		int _player1, _player2;
 		std::map <std::string, int> _columnas;
+		bool _turno; //true: le toca a player1, false: le toca a player2
 
 	public:
 		//Builder
@@ -34,6 +35,7 @@ class minesweeper_board{
 		inline int get_boardCols() const{return board[0].size();};
 		inline int get_player1() const{return this->_player1;};
 		inline int get_player2() const{return this->_player2;};
+		inline bool get_turno() const{return this->_turno;};
 		inline int get_minesNearBox(int x, int y) const{return board[x][y].get_minesNear();};
 
 		inline void set_player1(int player1) {this->_player1 = player1;};
@@ -42,6 +44,8 @@ class minesweeper_board{
 		inline bool get_flagsBox(int x, int y, int player) const{return board[x][y].get_flags(player);};
 		inline bool isSafeBox(int x, int y) const{return board[x][y].isSafe();};
 		inline bool isSecretBox(int x, int y) const{return board[x][y].isSecret();};
+
+		bool turno1(int playersd);
 
 		void set_flagBox(std::string fila, std::string columna, int player);
 		bool revealBox(std::string fila, std::string columna);
