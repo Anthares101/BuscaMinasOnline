@@ -1,3 +1,5 @@
+//TODO: cambiar los argumentos para adaptarlos al tablero con numeros en las filas y letras en las columnas
+
 #ifndef _MINESWEEPER_BOARD_HPP_
 #define _MINESWEEPER_BOARD_HPP_
 
@@ -9,10 +11,11 @@ class minesweeper_board{
 	private:
 		//Attributes
 		std::vector< std::vector<minesweeper_box> > board; //Empty game board
+		int _player1, _player2;
 
 	public:
 		//Builder
-		minesweeper_board();	
+		minesweeper_board(int player1 = -1, int player2 = -1);
 
 		//Public Methods
 		inline void putMineBox(int x, int y){board[x][y].putMine();};
@@ -20,14 +23,21 @@ class minesweeper_board{
 
 		inline int get_boardRows() const{return board.size();};
 		inline int get_boardCols() const{return board[0].size();};
+		inline int get_player1() const{return this->_player1;};
+		inline int get_player2() const{return this->_player2;};
 		inline int get_minesNearBox(int x, int y) const{return board[x][y].get_minesNear();};
+
+		inline void set_player1(int player1) {this->_player1 = player1;};
+		inline void set_player2(int player2) {this->_player2 = player2;};
+
 		inline bool get_flagsBox(int x, int y, int player) const{return board[x][y].get_flags(player);};
 		inline bool isSafeBox(int x, int y) const{return board[x][y].isSafe();};
 		inline bool isSecretBox(int x, int y) const{return board[x][y].isSecret();};
-		
-		inline void set_flagBox(int x, int y, int player){board[x][y].setFlag(player);};
+
+		void set_flagBox(int x, int y, int player);
 		bool revealBox(int x, int y);
 		void printBoard() const;
+		//char* board2string(); hay que codificarla
 
 		bool endGame(int player) const;
 };

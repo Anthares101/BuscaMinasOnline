@@ -6,8 +6,10 @@
 #include "minesweeper_board.hpp"
 #include "minesweeper_box.hpp"
 
-minesweeper_board::minesweeper_board(){
+minesweeper_board::minesweeper_board(int player1, int player2){
 	board = std::vector< std::vector<minesweeper_box> >(10, std::vector< minesweeper_box >(10)); //10x10 minesweeper board
+	_player1 = player1;
+	_player2 = player2;
 	srand(time(NULL)); //Random number seed initialized
 
 	for(int i = 0; i<20; i++){
@@ -33,11 +35,11 @@ void minesweeper_board::printBoard() const{
 		for(int j=0; j<get_boardCols(); j++)
 
 			if(isSecretBox(i,j)){
-				if(get_flagsBox(i, j, 0) && get_flagsBox(i, j, 1))
+				if(get_flagsBox(i, j, this->get_player1()) && get_flagsBox(i, j, this->get_player2()))
 					std::cout << " AB  ";
-				else if(get_flagsBox(i, j, 0))
+				else if(get_flagsBox(i, j, this->get_player1()))
 					std::cout << "  A  ";
-				else if(get_flagsBox(i, j, 1))
+				else if(get_flagsBox(i, j, this->get_player2()))
 					std::cout << "  B  ";
 				else
 					std::cout << "  -  ";
@@ -87,12 +89,21 @@ bool minesweeper_board::revealBox(int x, int y){
 	return true;
 }
 
+inline void minesweeper_board::set_flagBox(int x, int y, int player){
+	if(player == this->get_player1()){
+		board[x][y].setFlag(0);
+	}
+	else if(player == this->get_player2()){
+		board[x][y].setFlag(1);
+	}
+}
+
 bool minesweeper_board::endGame(int player) const{
 	int cont = 0;
 
 	for(int i=0; i<get_boardRows(); i++){
 		for(int j=0; j<get_boardCols(); j++){
-			if(!isSafeBox(i, j) && get_flagsBox(i, j, 0))
+			if(!isSafeBox(i, j) && get_flagsBox(i, j, player))
 				cont++;
 		}
 	}

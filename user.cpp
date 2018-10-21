@@ -35,7 +35,7 @@ int User::registerUser(std::string filename) {
 
 	if(!this->checkUser(filename)) {
 
-		file.open(filename.c_str());
+		file.open(filename.c_str(), std::ios::app);
 
 		file << *this;
 
