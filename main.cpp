@@ -20,6 +20,11 @@ int main(){
 			std::cout << "1. Revelar" << std::endl;
 			std::cout << "2. Bandera (" << flagsNum << "/10)" << std::endl << std::endl;
 			std::cout << "Opcion: ";
+
+			std::cout<<std::endl;
+			std::cout<<buscaminas.board2string();
+			std::cout<<std::endl;
+
 			std::cin >> option;
 			std::cin.ignore();
 

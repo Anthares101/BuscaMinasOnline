@@ -217,8 +217,11 @@ std::string minesweeper_board::board2string() const{
 			}
 			else if(!isSafeBox(i, j))
 				strBoard +="*,";
-			else
-				strBoard += get_minesNearBox(i, j) + ",";
+			else{
+				std::stringstream ss;
+				ss << get_minesNearBox(i, j);
+				strBoard += ss.str() + ",";
+			}
 	}
 
 	strBoard.pop_back();
