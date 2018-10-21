@@ -26,6 +26,7 @@
 void manejador(int signum);
 void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
 int idPartida(minesweeper_board arrayTableros[], int playersd);
+void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[]);
 std::string clearString(const std::string & str);
 
 
@@ -348,6 +349,14 @@ int main ( )
                                                 arrayTableros[partida].set_player1(arrayClientes[client].getSocket_descriptor());
                                                 arrayTableros[partida].set_player2(arrayClientes[z].getSocket_descriptor());
 
+                                                bzero(buffer,sizeof(buffer));
+                                                strcpy(buffer, arrayTableros[partida].board2string().c_str());
+                                                send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
+
+                                                bzero(buffer,sizeof(buffer));
+                                                strcpy(buffer, arrayTableros[partida].board2string().c_str());
+                                                send(arrayClientes[z].getSocket_descriptor(),buffer,strlen(buffer),0);
+
                                                 partida++;
                                             }
                                         }
@@ -371,14 +380,15 @@ int main ( )
                                         x = strBuffer.substr(2);
                                         x = clearString(x);
 
-                                        //controlar que la letra sea entre A y J y el numero entre 0 y 9, si se salen del rango, enviar un mensaje de error y haber estudiao
-
                                         //la casilla no tenia mina
-                                        /*if(arrayTableros[match].revealBox(x, Z)) {
+                                        if(arrayTableros[match].revealBox(x, Z)) {
 
                                             bzero(buffer,sizeof(buffer));
-                                            buffer = arrayTableros[match].board2string();
+                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player1(),buffer,strlen(buffer),0);
+
+                                            bzero(buffer,sizeof(buffer));
+                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
                                         }
                                         //la casilla tenia mina
@@ -390,18 +400,21 @@ int main ( )
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
 
                                             bzero(buffer,sizeof(buffer));
-                                            buffer = arrayTableros[match].board2string();
+                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player1(),buffer,strlen(buffer),0);
+
+                                            bzero(buffer,sizeof(buffer));
+                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
 
                                             arrayClientes[arrayTableros[match].get_player1()].setState("registered");
                                             arrayClientes[arrayTableros[match].get_player2()].setState("registered");
 
-                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[arrayTableros[match].get_player1].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[arrayTableros[match].get_player2].getLogin() << RESET << std::endl;
+                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[arrayTableros[match].get_player1()].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[arrayTableros[match].get_player2()].getLogin() << RESET << std::endl;
 
                                             //resetear el tablero de esta partida
-                                            borrarPartida(match, &partidas, arrayTableros);
-                                        }*/
+                                            borrarPartida(match, &partida, arrayTableros);
+                                        }
                                     }
                                 }
                             }

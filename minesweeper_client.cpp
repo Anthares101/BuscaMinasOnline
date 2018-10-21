@@ -11,8 +11,6 @@
 
 #include "macros.hpp"
 
-#define MSG_SIZE 250
-
 void print_board(char* board);
 
 int main (int argc, char * argv[])
@@ -30,7 +28,7 @@ int main (int argc, char * argv[])
 	-----------------------------------------------------*/
 	int sd;
 	struct sockaddr_in sockname;
-	char buffer[MSG_SIZE];
+	char buffer[250];
 	socklen_t len_sockname;
     fd_set readfds, auxfds;
     int salida;
@@ -125,13 +123,12 @@ int main (int argc, char * argv[])
 
 void print_board(char* board) {
 
-	char c = '\0';
+	std::string c;
 	int j = 1;
 
-	std::cout << "      [0] ";
+	std::cout << "     ";
 
-	for(int i = 1; i < 3; i++)
-		std::cout << " [" << i << "] ";
+	std::cout << " [A]  [B]  [C]  [D]  [E]  [F]  [G]  [H]  [I]  [J] ";
 
 	std::cout << std::endl;
 
@@ -139,18 +136,23 @@ void print_board(char* board) {
 
 		if(i == 0) std::cout << " [0] ";
 
-		if(c == ';') {
+		if(c == ";") {
 
 			std::cout << " [" << j << "] ";
 			j++;
 
 		}
 
-		c = board[i];
+		if(board[i] == 'A' && board[i + 1] == 'B') {
+			c = board[i] + board[i + 1];
+		}
+		else {
+			c = board[i];
+		}
 
-		if(c != ',' && c != ';') std::cout << "  " << c << "  ";
+		if(c != "," && c != ";") std::cout << "  " << c << "  ";
 
-		if(c == ';') std::cout << std::endl;
+		if(c == ";") std::cout << std::endl;
 
 	}
 
