@@ -28,6 +28,7 @@
 void manejador(int signum);
 void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
 int idPartida(minesweeper_board arrayTableros[], int playersd);
+int otherPlayer(User arrayClientes[], minesweeper_board arrayTableros[], int match, int client);
 void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[]);
 std::string clearString(const std::string & str);
 bool userAlreadyConnected(int client, int numClientes, User arrayClientes[]);
@@ -48,7 +49,7 @@ int main ( )
     minesweeper_board arrayTableros[MAX_PARTIDAS];
     int numClientes = 0;
     //contadores
-    int i,j,k, cont;
+    int i,j,k;
 	int recibidos;
     char identificador[MSG_SIZE];
 
@@ -57,16 +58,23 @@ int main ( )
     //Para la lectura de comandos
     std::string strBuffer;
 
+    //otro jugador de la partida
+    int other;
+
     //Numero de cliente
     int client;
 
     //Numero de partida
     int partida = 0;
 
+    //partida
+    int match;
+
     //Crea el fichero useList si no existe
     FILE * usersFile;
     usersFile = fopen("userList", "a");
     fclose(usersFile);
+
 	/* --------------------------------------------------
 		Se abre el socket
 	---------------------------------------------------*/
@@ -215,8 +223,28 @@ int main ( )
 
                             if(recibidos > 0){
 
-                                if(strcmp(buffer,"SALIR\n") == 0)
+                                if(strcmp(buffer,"SALIR\n") == 0) {
+
+                                    if(arrayClientes[client].getState() == "in_game") {
+
+                                        match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
+                                        other = otherPlayer(arrayClientes, arrayTableros, match, client);
+
+                                        arrayClientes[other].setState("registered");
+
+                                        std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[other].getLogin() << RESET << std::endl;
+
+                                        //resetear el tablero de esta partida
+                                        borrarPartida(match, &partida, arrayTableros);
+
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "+Ok. El otro jugador ha abandonado la partida");
+                                        send(arrayClientes[other].getSocket_descriptor(),buffer,strlen(buffer),0);
+                                    }
+
                                     salirCliente(i,&readfds,&numClientes,arrayClientes);
+
+                                }
 
 
                                 //Si el usuario no ha iniciado sesion aun se tendran en cuenta estos comandos
@@ -327,7 +355,7 @@ int main ( )
                                 //Si el usuario ha iniciado sesion se tendran en cuenta estos comandos
                                 else if(arrayClientes[client].getState() == "registered") {
 
-                                    if(strBuffer.substr(0, 15) == "INICIAR-PARTIDA") {
+                                    if(strBuffer.substr(0, 15) == "INICIAR-PARTIDA" && partida <= MAX_PARTIDAS) {
 
                                         bzero(buffer,sizeof(buffer));
                                         strcpy(buffer,"+Ok. Buscando partida...\n");
@@ -347,12 +375,12 @@ int main ( )
                                                 std::cout << BCYAN << "+ Partida iniciada: " << BYELLOW << arrayClientes[client].getLogin() << BRED << " VS " << BYELLOW << arrayClientes[z].getLogin() << RESET << std::endl;
 
                                                 bzero(buffer,sizeof(buffer));
-                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", (arrayClientes[client].getLogin()).c_str());
+                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s. Eres el jugador 2", (arrayClientes[client].getLogin()).c_str());
 
                                                 send(arrayClientes[z].getSocket_descriptor(),buffer,strlen(buffer),0);
 
                                                 bzero(buffer,sizeof(buffer));
-                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", (arrayClientes[z].getLogin()).c_str());
+                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s. Eres el jugador 1", (arrayClientes[z].getLogin()).c_str());
 
                                                 send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
 
@@ -362,13 +390,20 @@ int main ( )
 
                                                 usleep(1000);//USAR SALTOS DE LINEA EN LOS MENSAJES DEL SERVER AL CLIENTE PARA EVITAR PROBLEMA CON BUFFER
                                                 bzero(buffer,sizeof(buffer));
-                                                strcpy(buffer, arrayTableros[partida].board2string().c_str());
+                                                std::string a = arrayTableros[partida].board2string();
+                                                strcpy(buffer, a.c_str());
                                                 send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
                                                 send(arrayClientes[z].getSocket_descriptor(),buffer,strlen(buffer),0);
-
+std::cout << a << std::endl;
                                                 partida++;
                                             }
                                         }
+                                    }
+                                    else if(strBuffer.substr(0, 15) == "INICIAR-PARTIDA" && partida > MAX_PARTIDAS) {
+
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "-Err. El servidor no puede alojar mas partidas, debe esperar");
+                                        send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
                                     }
                                     else{
                                         bzero(buffer,sizeof(buffer));
@@ -379,7 +414,6 @@ int main ( )
                                 //Si el usuario esta in_game se tendran en cuenta estos comandos
                                 else if(arrayClientes[client].getState() == "in_game") {
                                     std::string Z, x; //letra y numero del tablero
-                                    int match;
 
                                     match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
 
@@ -415,18 +449,12 @@ int main ( )
                                             send(arrayTableros[match].get_player1(),buffer,strlen(buffer),0);
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
 
-                                            //POSIBLE FUNCION
-                                            for(cont = 0; cont < MAX_CLIENTS; cont++) {
-                                                if((arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player2() && cont != client) ||
-                                                   (arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player1() && cont != client)) {
-                                                    break;
-                                                }
-                                            }
+                                            other = otherPlayer(arrayClientes, arrayTableros, match, client);
 
                                             arrayClientes[client].setState("registered");
-                                            arrayClientes[cont].setState("registered");
+                                            arrayClientes[other].setState("registered");
 
-                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[cont].getLogin() << RESET << std::endl;
+                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[other].getLogin() << RESET << std::endl;
 
                                             //resetear el tablero de esta partida
                                             borrarPartida(match, &partida, arrayTableros);
@@ -516,9 +544,22 @@ int idPartida(minesweeper_board arrayTableros[], int playersd) {
     return match;
 }
 
+int otherPlayer(User arrayClientes[], minesweeper_board arrayTableros[], int match, int client) {
+    int other;
+
+    for(int cont = 0; cont < MAX_CLIENTS; cont++) {
+        if((arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player2() && cont != client) ||
+           (arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player1() && cont != client)) {
+            other = cont;
+        }
+    }
+
+    return other;
+}
+
 void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[]) {
 
-    for(int z = match; z < MAX_PARTIDAS - 1; z++) {
+    for(int z = match; z < *partidas - 1; z++) {
 
         arrayTableros[z] = arrayTableros[z + 1];
     }
@@ -526,6 +567,7 @@ void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[])
     (*partidas)--;
 
     arrayTableros[*partidas] = minesweeper_board();
+
 }
 
 void manejador (int signum){
