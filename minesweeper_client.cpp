@@ -125,6 +125,7 @@ void print_board(char* board) {
 
 	std::string c = "";
 	int j = 1;
+	int i = 0;
 
 	std::cout << "     ";
 
@@ -132,7 +133,7 @@ void print_board(char* board) {
 
 	std::cout << std::endl;
 
-	for(int i = 0; i < strlen(board); i++) {
+	while(i < strlen(board)) {
 
 		if(i == 0) std::cout << " [0] ";
 
@@ -144,13 +145,19 @@ void print_board(char* board) {
 		}
 
 		if(board[i] == 'A' && board[i + 1] == 'B') {
-			c = board[i] + board[i + 1];
+
+			c = "AB";
+
+			i += 2;
 		}
 		else {
 			c = board[i];
+
+			i++;
 		}
 
-		if(c != "," && c != ";") std::cout << "  " << c << "  ";
+		if(c != "," && c != ";" && c != "AB") std::cout << "  " << c << "  ";
+		else if(c == "AB") std::cout << "  " << c << " ";
 
 		if(c == ";") std::cout << std::endl;
 
