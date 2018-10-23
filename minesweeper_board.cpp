@@ -16,6 +16,7 @@ typedef std::pair<std::string, double> columna;
 
 minesweeper_board::minesweeper_board(int player1, int player2){
 	board = std::vector< std::vector<minesweeper_box> >(10, std::vector< minesweeper_box >(10)); //10x10 minesweeper board
+	_columnas = std::map <std::string, int> ();
 	_player1 = player1;
 	_player2 = player2;
 	_turno = true;

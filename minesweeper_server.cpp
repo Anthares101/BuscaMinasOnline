@@ -27,7 +27,7 @@
 
 void manejador(int signum);
 void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
-int idPartida(minesweeper_board arrayTableros[], int playersd);
+int idPartida(int partida, minesweeper_board arrayTableros[], int playersd);
 void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[]);
 std::string clearString(const std::string & str);
 bool userAlreadyConnected(int client, int numClientes, User arrayClientes[]);
@@ -48,7 +48,7 @@ int main ( )
     minesweeper_board arrayTableros[MAX_PARTIDAS];
     int numClientes = 0;
     //contadores
-    int i,j,k, cont;
+    int i,j,k,enemyClient;
 	int recibidos;
     char identificador[MSG_SIZE];
 
@@ -337,7 +337,7 @@ int main ( )
 
                                         arrayClientes[client].setState("in_queue");
 
-                                        for(int z = 0; z < MAX_CLIENTS; z++) {
+                                        for(int z = 0; z < numClientes; z++) {
 
                                             if(z != client && arrayClientes[z].getState() == "in_queue" && partida <= MAX_PARTIDAS) {
 
@@ -349,12 +349,12 @@ int main ( )
                                                 bzero(buffer,sizeof(buffer));
                                                 sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", (arrayClientes[client].getLogin()).c_str());
 
-                                                send(arrayClientes[z].getSocket_descriptor(),buffer,strlen(buffer),0);
+                                                send(arrayClientes[z].getSocket_descriptor(),buffer,sizeof(buffer),0);
 
                                                 bzero(buffer,sizeof(buffer));
                                                 sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s", (arrayClientes[z].getLogin()).c_str());
 
-                                                send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
+                                                send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
 
                                                 //se les asigna un objeto tablero dentro del arrayTableros
                                                 arrayTableros[partida].set_player1(arrayClientes[client].getSocket_descriptor());
@@ -367,6 +367,8 @@ int main ( )
                                                 send(arrayClientes[z].getSocket_descriptor(),buffer,strlen(buffer),0);
 
                                                 partida++;
+
+                                                break;
                                             }
                                         }
                                     }
@@ -381,7 +383,7 @@ int main ( )
                                     std::string Z, x; //letra y numero del tablero
                                     int match;
 
-                                    match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
+                                    match = idPartida(partida, arrayTableros, arrayClientes[client].getSocket_descriptor());
 
                                     if(strBuffer.substr(0, 10) == "DESCUBRIR " && arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()) {
 
@@ -403,7 +405,6 @@ int main ( )
                                         }
                                         //la casilla tenia mina
                                         else {
-
                                             bzero(buffer,sizeof(buffer));
                                             sprintf(buffer, "+Ok. Jugador %s ha perdido la partida\n", arrayClientes[client].getLogin().c_str());
                                             send(arrayTableros[match].get_player1(),buffer,strlen(buffer),0);
@@ -416,17 +417,17 @@ int main ( )
                                             send(arrayTableros[match].get_player2(),buffer,strlen(buffer),0);
 
                                             //POSIBLE FUNCION
-                                            for(cont = 0; cont < MAX_CLIENTS; cont++) {
-                                                if((arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player2() && cont != client) ||
-                                                   (arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player1() && cont != client)) {
+                                            for(enemyClient = 0; enemyClient < numClientes; enemyClient++) {
+                                                if((arrayClientes[enemyClient].getSocket_descriptor() == arrayTableros[match].get_player2() && enemyClient != client) ||
+                                                   (arrayClientes[enemyClient].getSocket_descriptor() == arrayTableros[match].get_player1() && enemyClient != client)) {
                                                     break;
                                                 }
                                             }
 
                                             arrayClientes[client].setState("registered");
-                                            arrayClientes[cont].setState("registered");
+                                            arrayClientes[enemyClient].setState("registered");
 
-                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[cont].getLogin() << RESET << std::endl;
+                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
 
                                             //resetear el tablero de esta partida
                                             borrarPartida(match, &partida, arrayTableros);
@@ -502,13 +503,13 @@ void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayCli
 
 }
 
-int idPartida(minesweeper_board arrayTableros[], int playersd) {
+int idPartida(int partidas, minesweeper_board arrayTableros[], int playersd) {
     int match;
 
-    for(int z = 0; z < MAX_PARTIDAS; z++) {
+    for(int i = 0; i < partidas; i++) {
 
-        if(arrayTableros[z].get_player1() == playersd || arrayTableros[z].get_player2() == playersd) {
-            match = z;
+        if(arrayTableros[i].get_player1() == playersd || arrayTableros[i].get_player2() == playersd) {
+            match = i;
             break;
         }
     }
@@ -518,9 +519,9 @@ int idPartida(minesweeper_board arrayTableros[], int playersd) {
 
 void borrarPartida(int match, int * partidas, minesweeper_board arrayTableros[]) {
 
-    for(int z = match; z < MAX_PARTIDAS - 1; z++) {
+    for(int i = match; i < (*partidas) - 1; i++) {
 
-        arrayTableros[z] = arrayTableros[z + 1];
+        arrayTableros[i] = arrayTableros[i + 1];
     }
 
     (*partidas)--;
