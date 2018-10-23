@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <cctype>
 #include <sstream>
+#include <cassert>
 
 #include "minesweeper_board.hpp"
 #include "minesweeper_box.hpp"
@@ -93,11 +94,11 @@ void minesweeper_board::printBoard() const{
 		for(int j=0; j<get_boardCols(); j++)
 
 			if(isSecretBox(i,j)){
-				if(get_flagsBox(i, j, this->get_player1()) && get_flagsBox(i, j, this->get_player2()))
+				if(get_flagsBox(i, j, get_playerNumber(this->get_player1())) && get_flagsBox(i, j, get_playerNumber(this->get_player2())))
 					std::cout << " AB  ";
-				else if(get_flagsBox(i, j, this->get_player1()))
+				else if(get_flagsBox(i, j, get_playerNumber(this->get_player1())))
 					std::cout << "  A  ";
-				else if(get_flagsBox(i, j, this->get_player2()))
+				else if(get_flagsBox(i, j, get_playerNumber(this->get_player2())))
 					std::cout << "  B  ";
 				else
 					std::cout << "  -  ";
@@ -203,15 +204,14 @@ bool minesweeper_board::myTurn(int playersd) {
 void minesweeper_board::set_flagBox(std::string fila, std::string columna, int player){
 
 	int x, y;
+	int changedPlayer;
 
 	this->coordinates(fila, columna, &x, &y);
 
-	if(player == this->get_player1()){
-		board[x][y].setFlag(0);
-	}
-	else if(player == this->get_player2()){
-		board[x][y].setFlag(1);
-	}
+	changedPlayer = get_playerNumber(player);
+	assert(changedPlayer != -1);
+
+	board[x][y].setFlag(changedPlayer);
 
 	changeTurn();
 }
@@ -227,11 +227,11 @@ std::string minesweeper_board::board2string() const{
 		for(int j=0; j<get_boardCols(); j++)
 
 			if(isSecretBox(i,j)){
-				if(get_flagsBox(i, j, this->get_player1()) && get_flagsBox(i, j, this->get_player2()))
+				if(get_flagsBox(i, j, get_playerNumber(this->get_player1())) && get_flagsBox(i, j, get_playerNumber(this->get_player2())))
 					strBoard += "AB,";
-				else if(get_flagsBox(i, j, this->get_player1()))
+				else if(get_flagsBox(i, j, get_playerNumber(this->get_player1())))
 					strBoard += "A,";
-				else if(get_flagsBox(i, j, this->get_player2()))
+				else if(get_flagsBox(i, j, get_playerNumber(this->get_player2())))
 					strBoard += "B,";
 				else
 					strBoard += "-,";

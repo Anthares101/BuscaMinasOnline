@@ -19,12 +19,21 @@ class minesweeper_board{
 		std::map <std::string, int> _columnas;
 		bool _turno; //true: le toca a player1, false: le toca a player2
 
-		void changeTurn(){
+		inline void changeTurn(){
 			if(this->_turno)
 				this->_turno = false;
 			else
 				this->_turno = true;
-		}
+		};
+
+		inline int get_playerNumber (int sd) const{
+			if(this->get_player1() == sd)
+				return 0;
+			if(this->get_player2() == sd)
+				return 1;
+
+			return -1;
+		};
 	public:
 		//Builder
 		minesweeper_board(int player1 = -1, int player2 = -1);
