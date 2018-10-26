@@ -34,14 +34,16 @@ class minesweeper_board{
 
 			return -1;
 		};
+		
+		inline int get_minesNearBox(int x, int y) const{return board[x][y].get_minesNear();};
 	public:
 		//Builder
 		minesweeper_board(int player1 = -1, int player2 = -1);
 
 		//Public Methods
-		void coordinates(std::string fila, std::string columna, int * x, int * y);
+		void coordinates(std::string fila, std::string columna, int * x, int * y) const;
 
-		bool checkCoordinates(std::string fila, std::string columna);
+		bool checkCoordinates(std::string fila, std::string columna) const;
 
 		inline void putMineBox(int x, int y){board[x][y].putMine();};
 		inline void set_minesNearBox(int x, int y, int count){board[x][y].set_minesNear(count);};
@@ -51,14 +53,31 @@ class minesweeper_board{
 		inline int get_player1() const{return this->_player1;};
 		inline int get_player2() const{return this->_player2;};
 		inline bool get_turno() const{return this->_turno;};
-		inline int get_minesNearBox(int x, int y) const{return board[x][y].get_minesNear();};
 
 		inline void set_player1(int player1) {this->_player1 = player1;};
 		inline void set_player2(int player2) {this->_player2 = player2;};
 
-		inline bool get_flagsBox(int x, int y, int player) const{return board[x][y].get_flags(player);};
+		inline bool get_flagsBox(int x, int y, int player) const{return board[x][y].get_flags(get_playerNumber (player));};
+		inline bool get_flagsBox(std::string x, std::string y, int player) const{
+			int xMod, yMod;
+			coordinates(x, y, &xMod, &yMod);
+
+			return board[xMod][yMod].get_flags(get_playerNumber (player));
+		};
 		inline bool isSafeBox(int x, int y) const{return board[x][y].isSafe();};
+		inline bool isSafeBox(std::string x, std::string y) const{
+			int xMod, yMod;
+			coordinates(x, y, &xMod, &yMod);
+
+			return board[xMod][yMod].isSafe();
+		};
 		inline bool isSecretBox(int x, int y) const{return board[x][y].isSecret();};
+		inline bool isSecretBox(std::string x, std::string y) const{
+			int xMod, yMod;
+			coordinates(x, y, &xMod, &yMod);
+
+			return board[xMod][yMod].isSecret();
+		};
 
 		bool myTurn(int playersd);
 

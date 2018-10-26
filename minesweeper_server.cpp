@@ -200,7 +200,7 @@ int main ( )
                                     exit(-1);
 
                             }
-                        //Mensajes que se quieran mandar a los clientes (implementar)
+                        //Mensajes que se quieran mandar a los clientes
                         }
                         else{
                         	client = 0;
@@ -375,16 +375,16 @@ int main ( )
                                                 send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
 
                                                 arrayTableros.push_back(minesweeper_board());
-
+                                                
                                                 //se les asigna un objeto tablero dentro del arrayTableros
                                                 arrayTableros[arrayTableros.size()-1].set_player1(arrayClientes[client].getSocket_descriptor());
                                                 arrayTableros[arrayTableros.size()-1].set_player2(arrayClientes[z].getSocket_descriptor());
-
+                                                
                                                 bzero(buffer,sizeof(buffer));
                                                 strcpy(buffer, arrayTableros[arrayTableros.size()-1].board2string().c_str());
                                                 send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
                                                 send(arrayClientes[z].getSocket_descriptor(),buffer,sizeof(buffer),0);
-
+                                                
                                                 break;
                                             }
                                         }
@@ -404,46 +404,59 @@ int main ( )
                                 //Si el usuario esta in_game se tendran en cuenta estos comandos
                                 else if(arrayClientes[client].getState() == "in_game") {
                                     std::string Z, x; //letra y numero del tablero
-
+                                    
                                     match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
 
-                                    if(strBuffer.substr(0, 10) == "DESCUBRIR " && arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()) {
+                                    if(strBuffer.substr(0, 10) == "DESCUBRIR " && arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()){
 
-                                        Z = strBuffer.substr(0, 1);
-                                        x = strBuffer.substr(2);
-                                        x = clearString(x);
-
-                                        //la casilla no tenia mina
-                                        if(arrayTableros[match].revealBox(x, Z)) {
-
-                                            bzero(buffer,sizeof(buffer));
-                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
-                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
-                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
-
+                                        Z = strBuffer.substr(0, 1);//Primer caracter como parametro
+                                        if(strBuffer.substr(1, 1) == ","){//Se comprueba si hay una coma justo despues del caracter
+                                        	x = strBuffer.substr(2);
+                                        	x = clearString(x);
                                         }
-                                        //la casilla tenia mina
-                                        else {
-                                            bzero(buffer,sizeof(buffer));
-                                            sprintf(buffer, "+Ok. Jugador %s ha perdido la partida\n", arrayClientes[client].getLogin().c_str());
-                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
-                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
+                                        else
+                                        	x = "";
 
-                                            bzero(buffer,sizeof(buffer));
-                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
-                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
-                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
+                                        //Casilla introducida posible y no tiene bandera del jugador ni esta descubierta
+                                        if(arrayTableros[match].checkCoordinates(x, Z) && arrayTableros[match].isSecretBox(x, Z) && !arrayTableros[match].get_flagsBox(x, Z, arrayClientes[client].getSocket_descriptor())){
+                                        	//la casilla no tenia mina
+	                                        if(arrayTableros[match].revealBox(x, Z)) {
 
-                                            enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
+	                                            bzero(buffer,sizeof(buffer));
+	                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
+	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
+	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
 
-                                            arrayClientes[client].setState("registered");
-                                            arrayClientes[enemyClient].setState("registered");
+	                                        }
+	                                        //la casilla tenia mina
+	                                        else {
+	                                            bzero(buffer,sizeof(buffer));
+	                                            sprintf(buffer, "+Ok. Jugador %s ha perdido la partida\n", arrayClientes[client].getLogin().c_str());
+	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
+	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
 
-                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
+	                                            bzero(buffer,sizeof(buffer));
+	                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
+	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
+	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
 
-                                            //borrar el tablero de esta partida
-                                            arrayTableros.erase(arrayTableros.begin()+match);
-                                        }
+	                                            enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
+
+	                                            arrayClientes[client].setState("registered");
+	                                            arrayClientes[enemyClient].setState("registered");
+
+	                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
+
+	                                            //borrar el tablero de esta partida
+	                                            arrayTableros.erase(arrayTableros.begin()+match);
+	                                        }
+	                                    }
+	                                    else{//Casilla invalida
+	                                    	bzero(buffer,sizeof(buffer));
+	                                    	sprintf(buffer, "-Err. Casilla introducida invalida, seleccione otra\n");
+	                                    	send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+	                                    }
+
                                     }
                                     else if(strBuffer.substr(0, 10) == "DESCUBRIR " && !arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()) {
 
@@ -552,7 +565,7 @@ bool userAlreadyConnected(int client, std::vector <User> arrayClientes){
  	return false;
 }
 
-std::string clearString(const std::string & str){ //Limpia una cadena para quitar los \n e ignorar lo que haya mas alla de un espacio
+std::string clearString(const std::string & str){ //Limpia una cadena para quitar los \n y espacios e ignorar lo que haya despues de ellos
 	std::string outStr = str;
 	int pos;
 

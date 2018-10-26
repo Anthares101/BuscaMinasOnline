@@ -8,12 +8,11 @@
 #include <iomanip>
 #include <cctype>
 #include <sstream>
-#include <cassert>
 
 #include "minesweeper_board.hpp"
 #include "minesweeper_box.hpp"
 
-typedef std::pair<std::string, double> columna;
+typedef std::pair<std::string, int> columna;
 
 minesweeper_board::minesweeper_board(int player1, int player2){
 	board = std::vector< std::vector<minesweeper_box> >(10, std::vector< minesweeper_box >(10)); //10x10 minesweeper board
@@ -46,35 +45,34 @@ minesweeper_board::minesweeper_board(int player1, int player2){
 	}
 }
 
-void minesweeper_board::coordinates(std::string fila, std::string columna, int * x, int * y) {
+void minesweeper_board::coordinates(std::string fila, std::string columna, int * x, int * y) const{
 
 	*x = atoi(fila.c_str());
-	std::map <std::string, int>::iterator it = this->_columnas.find(columna);
+	std::map <std::string, int>::const_iterator it = this->_columnas.find(columna);
 	if(it != this->_columnas.end()) {
 		*y = it->second;
 	}
 }
 
-bool minesweeper_board::checkCoordinates(std::string fila, std::string columna) {
+bool minesweeper_board::checkCoordinates(std::string fila, std::string columna) const{
 
 	int x;
 	bool checked = false;
 
-	if(isdigit(fila.c_str()[0])) {
+	if(!fila.empty() && !columna.empty() && isdigit(fila.c_str()[0])) {
 
 		x = atoi(fila.c_str());
 
 		if(x >= 0 && x <= 9 && (columna.find("A") != std::string::npos ||
-		   columna.find("B") != std::string::npos ||
-		   columna.find("C") != std::string::npos ||
-		   columna.find("D") != std::string::npos ||
-		   columna.find("E") != std::string::npos ||
-		   columna.find("F") != std::string::npos ||
-		   columna.find("G") != std::string::npos ||
-		   columna.find("H") != std::string::npos ||
-		   columna.find("I") != std::string::npos ||
-		   columna.find("J") != std::string::npos)) {
-
+		   						columna.find("B") != std::string::npos ||
+		  					 	columna.find("C") != std::string::npos ||
+		   						columna.find("D") != std::string::npos ||
+								columna.find("E") != std::string::npos ||
+								columna.find("F") != std::string::npos ||
+								columna.find("G") != std::string::npos ||
+								columna.find("H") != std::string::npos ||
+								columna.find("I") != std::string::npos ||
+								columna.find("J") != std::string::npos)){
 			checked = true;
 		}
 	}
@@ -94,11 +92,11 @@ void minesweeper_board::printBoard() const{
 		for(int j=0; j<get_boardCols(); j++)
 
 			if(isSecretBox(i,j)){
-				if(get_flagsBox(i, j, get_playerNumber(this->get_player1())) && get_flagsBox(i, j, get_playerNumber(this->get_player2())))
+				if(get_flagsBox(i, j, this->get_player1()) && get_flagsBox(i, j, this->get_player2()))
 					std::cout << " AB  ";
-				else if(get_flagsBox(i, j, get_playerNumber(this->get_player1())))
+				else if(get_flagsBox(i, j, this->get_player1()))
 					std::cout << "  A  ";
-				else if(get_flagsBox(i, j, get_playerNumber(this->get_player2())))
+				else if(get_flagsBox(i, j, this->get_player2()))
 					std::cout << "  B  ";
 				else
 					std::cout << "  -  ";
@@ -209,7 +207,6 @@ void minesweeper_board::set_flagBox(std::string fila, std::string columna, int p
 	this->coordinates(fila, columna, &x, &y);
 
 	changedPlayer = get_playerNumber(player);
-	assert(changedPlayer != -1);
 
 	board[x][y].setFlag(changedPlayer);
 
@@ -227,11 +224,11 @@ std::string minesweeper_board::board2string() const{
 		for(int j=0; j<get_boardCols(); j++)
 
 			if(isSecretBox(i,j)){
-				if(get_flagsBox(i, j, get_playerNumber(this->get_player1())) && get_flagsBox(i, j, get_playerNumber(this->get_player2())))
+				if(get_flagsBox(i, j, this->get_player1()) && get_flagsBox(i, j, this->get_player2()))
 					strBoard += "AB,";
-				else if(get_flagsBox(i, j, get_playerNumber(this->get_player1())))
+				else if(get_flagsBox(i, j, this->get_player1()))
 					strBoard += "A,";
-				else if(get_flagsBox(i, j, get_playerNumber(this->get_player2())))
+				else if(get_flagsBox(i, j, this->get_player2()))
 					strBoard += "B,";
 				else
 					strBoard += "-,";
