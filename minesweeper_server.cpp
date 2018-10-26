@@ -11,10 +11,12 @@
 #include <arpa/inet.h>
 
 #include "user.hpp"
+#include "minesweeper_board.hpp"
 #include "macros.hpp"
 
 #define MSG_SIZE 250
 #define MAX_CLIENTS 30
+#define MAX_PARTIDAS 10
 
 
 /*
@@ -22,9 +24,11 @@
  */
 
 void manejador(int signum);
-void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]);
+void salirCliente(int socket, fd_set * readfds, std::vector <User> arrayClientes);
+int idPartida(std::vector <minesweeper_board> arrayTableros, int playersd);
+int otherPlayer(std::vector <User> arrayClientes, std::vector <minesweeper_board> arrayTableros, int match, int client);
 std::string clearString(const std::string & str);
-
+bool userAlreadyConnected(int client, std::vector <User> arrayClientes);
 
 int main ( )
 {
@@ -38,8 +42,8 @@ int main ( )
 	socklen_t from_len;
     fd_set readfds, auxfds;
     int salida;
-    User arrayClientes[MAX_CLIENTS];
-    int numClientes = 0;
+    std::vector<User> arrayClientes;
+    std::vector<minesweeper_board> arrayTableros;
     //contadores
     int i,j,k;
 	int recibidos;
@@ -51,18 +55,22 @@ int main ( )
     std::string strBuffer;
 
     //Numero de cliente
-    int client;
+    int client, enemyClient;
+
+    //partida
+    int match;
 
     //Crea el fichero useList si no existe
     FILE * usersFile;
     usersFile = fopen("userList", "a");
     fclose(usersFile);
+
 	/* --------------------------------------------------
 		Se abre el socket
 	---------------------------------------------------*/
 	sd = socket (AF_INET, SOCK_STREAM, 0);
 	if (sd == -1)
-	{  
+	{
         std::cout << BRED;
 		perror("- No se puede abrir el socket cliente\n");
         std::cout << RESET;
@@ -149,12 +157,12 @@ int main ( )
                             }
                             else
                             {
-                                if(numClientes < MAX_CLIENTS){
-                                    arrayClientes[numClientes].setSocket_descriptor(new_sd);
-                                    numClientes++;
+                                if(arrayClientes.size() < MAX_CLIENTS){
+                                	arrayClientes.push_back(User());
+                                    arrayClientes[arrayClientes.size()-1].setSocket_descriptor(new_sd);
                                     FD_SET(new_sd,&readfds);
 
-                                    std::cout << BCYAN << "+ Nuevo usuario conectado " << BYELLOW << "[" << numClientes << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
+                                    std::cout << BCYAN << "+ Nuevo usuario conectado " << BYELLOW << "[" << arrayClientes.size() << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
                                     strcpy(buffer, "+Ok. Usuario conectado\n");
 
                                     send(new_sd,buffer,strlen(buffer),0);
@@ -179,7 +187,7 @@ int main ( )
                             //Controlar si se ha introducido "SALIR", cerrando todos los sockets y finalmente saliendo del servidor. (implementar)
                             if(strcmp(buffer,"SALIR\n") == 0){
 
-                                for (j = 0; j < numClientes; j++){
+                                for (j = 0; j < arrayClientes.size(); j++){
                                     send(arrayClientes[j].getSocket_descriptor(), "-Err. Desconexion servidor\n", strlen("-Err. Desconexion servidor\n"),0);
                                     close(arrayClientes[j].getSocket_descriptor());
                                     FD_CLR(arrayClientes[j].getSocket_descriptor(),&readfds);
@@ -192,23 +200,43 @@ int main ( )
                                     exit(-1);
 
                             }
-                        //Mensajes que se quieran mandar a los clientes (implementar)
+                        //Mensajes que se quieran mandar a los clientes
                         }
                         else{
                         	client = 0;
-                        	while(client < numClientes && arrayClientes[client].getSocket_descriptor() != i)
+                        	while(client < arrayClientes.size() && arrayClientes[client].getSocket_descriptor() != i)
                         		client++;
                             bzero(buffer,sizeof(buffer));
 
                             recibidos = recv(i,buffer,sizeof(buffer),0);
                             strBuffer = buffer;
-                            
+
                             if(recibidos > 0){
 
-                                if(strcmp(buffer,"SALIR\n") == 0)
-                                    salirCliente(i,&readfds,&numClientes,arrayClientes);
+                                if(strcmp(buffer,"SALIR\n") == 0) {
 
-                                
+                                    if(arrayClientes[client].getState() == "in_game") {
+
+                                        match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
+                                        enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
+
+                                        arrayClientes[enemyClient].setState("registered");
+
+                                        std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
+
+                                        //borrar el tablero de esta partida
+                                        arrayTableros.erase(arrayTableros.begin()+match);
+
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "+Ok. El otro jugador ha abandonado la partida");
+                                        send(arrayClientes[enemyClient].getSocket_descriptor(),buffer,sizeof(buffer),0);
+                                    }
+
+                                    salirCliente(i, &readfds, arrayClientes);
+
+                                }
+
+
                                 //Si el usuario no ha iniciado sesion aun se tendran en cuenta estos comandos
                                 else if(arrayClientes[client].getState() == "not_registered"){
 	                        		//Comando USUARIO usuario
@@ -216,44 +244,54 @@ int main ( )
 	                        			strBuffer = clearString(strBuffer);
 
 	                        			arrayClientes[client].setLogin(strBuffer);
-	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){
-	                        				bzero(buffer,sizeof(buffer));
+	                        			if(arrayClientes[client].getLogin() != "" && arrayClientes[client].checkUser("userList")){//Usuario Correcto
+                                            bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "+Ok. Introduzca mediante \"PASSWORD password\" su contraseña");
 	                        			}
-	                        			else{
-	                        				arrayClientes[client].setLogin("");
+	                        			else{//El usuario no existe
+                                            arrayClientes[client].setLogin("");
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Usuario incorrecto, use \"REGISTRO –u usuario –p password\" para registrarse");
 	                        			}
 	                        		}
 	                        		//Comando PASSWORD password
-	                        		else if(strBuffer.substr(0, 9) == "PASSWORD " && !(strBuffer = strBuffer.substr(9)).empty()){
+	                        		else if(strBuffer.substr(0, 9) == "PASSWORD " && !(strBuffer = strBuffer.substr(9)).empty()){//Se ha puesto PASSWORD antes de USUARIO
 	                        			strBuffer = clearString(strBuffer);
 
 	                        			if(arrayClientes[client].getLogin() == ""){
-	                        				bzero(buffer,sizeof(buffer));
+                                            bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Primero indique su usuario con \"USUARIO usuario\"");
 	                        			}
 	                        			else{
 	                        				arrayClientes[client].setPassword(strBuffer);
-	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){
-	                        					arrayClientes[client].setState("registered");
-	                        					bzero(buffer,sizeof(buffer));
-	                        					sprintf(buffer, "+Ok. Usuario validado");
-	                        				}
-	                        				else{
-	                        					arrayClientes[client].setLogin("");
-	                        					arrayClientes[client].setPassword("");
-	                        					bzero(buffer,sizeof(buffer));
-	                        					sprintf(buffer, "-Err. Error en la validacion");
-	                        				}
-	                        			}
-	                        		}
-	                        		else if(arrayClientes[client].getLogin() != "") {//Se espera PASSWORD
-	                        			arrayClientes[client].setLogin("");
+
+	                        				if(arrayClientes[client].getPassword() != "" && arrayClientes[client].verifyUser("userList")){//Contraseña y usuario correctos
+                                                if(!userAlreadyConnected(client, arrayClientes)){//El login que inicia sesion no tiene una sesion iniciada
+		                        					arrayClientes[client].setState("registered");
+		                        					bzero(buffer,sizeof(buffer));
+		                        					sprintf(buffer, "+Ok. Usuario validado");
+	                        					}
+	                        					else{
+	                        						arrayClientes[client].setLogin("");
+	                        						arrayClientes[client].setPassword("");
+	                        						bzero(buffer,sizeof(buffer));
+		                        					sprintf(buffer, "-Err. La cuenta de usuario a la que intenta acceder tiene una sesion activa");
+	                        					}
+                                            }
+                                            else{//Contraseña incorrecta
+                                                arrayClientes[client].setLogin("");
+                                                arrayClientes[client].setPassword("");
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "-Err. Error en la validacion");
+                                            }
+                                        }
+                                    }
+                                    else if(arrayClientes[client].getLogin() != "") {//Se espera PASSWORD
+                                        arrayClientes[client].setLogin("");
 	                        			bzero(buffer,sizeof(buffer));
 	                        			sprintf(buffer, "-Err. Error en la validacion");
 	                        		}
+                                    //Comando REGISTRO -u login -p password (o viceversa)
 	                        		else if(strBuffer.substr(0, 9) == "REGISTRO " && !(strBuffer = strBuffer.substr(9)).empty()){
 	                        			int pos;
 	                        			std::string userLogin = "";
@@ -292,7 +330,7 @@ int main ( )
 	                        					sprintf(buffer, "-Err. Ese nombre de usuario ya existe");
 	                        				}
 	                        			}
-	                        			else{
+                                        else{
 	                        				bzero(buffer,sizeof(buffer));
 	                        				sprintf(buffer, "-Err. Registrese mediante \"REGISTRO -u usuario -p password\"");
 	                        			}
@@ -302,15 +340,133 @@ int main ( )
 	                            		sprintf(buffer, "-Err. Inicie sesion con \"USUARIO usuario\" y despues \"PASSWORD password\" o registrese con \"REGISTRO -u usuario -p password\"");
 	                        		}
 
-                                	send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);	
+                                    send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
                                 }
-                            	else{//Si el usuario ha iniciado sesion se tendran en cuenta estos comandos
-                                    //sprintf(identificador,"%d: %s",i,buffer);
-                                    sprintf(identificador,"+Ok. Eres el usuario %d",i);
-                                    bzero(buffer,sizeof(buffer));
-                                    strcpy(buffer,identificador);
-                                    send(arrayClientes[client].getSocket_descriptor(),buffer,strlen(buffer),0);
+                                //Si el usuario ha iniciado sesion se tendran en cuenta estos comandos
+                                else if(arrayClientes[client].getState() == "registered") {
+
+                                    if(strBuffer.substr(0, 15) == "INICIAR-PARTIDA" && arrayTableros.size() <= MAX_PARTIDAS) {
+
+                                        bzero(buffer,sizeof(buffer));
+                                        strcpy(buffer,"+Ok. Buscando partida...\n");
+                                        send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
+                                        strBuffer = clearString(strBuffer);
+
+                                        arrayClientes[client].setState("in_queue");
+
+                                        for(int z = 0; z < arrayClientes.size(); z++) {
+
+                                            if(z != client && arrayClientes[z].getState() == "in_queue") {
+
+                                                arrayClientes[z].setState("in_game");
+                                                arrayClientes[client].setState("in_game");
+
+                                                std::cout << BCYAN << "+ Partida iniciada: " << BYELLOW << arrayClientes[client].getLogin() << BRED << " VS " << BYELLOW << arrayClientes[z].getLogin() << RESET << std::endl;
+
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s. Eres el jugador 2", (arrayClientes[client].getLogin()).c_str());
+
+                                                send(arrayClientes[z].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "+Ok. Empieza la partida contra el jugador %s. Eres el jugador 1", (arrayClientes[z].getLogin()).c_str());
+
+                                                send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
+                                                arrayTableros.push_back(minesweeper_board());
+                                                
+                                                //se les asigna un objeto tablero dentro del arrayTableros
+                                                arrayTableros[arrayTableros.size()-1].set_player1(arrayClientes[client].getSocket_descriptor());
+                                                arrayTableros[arrayTableros.size()-1].set_player2(arrayClientes[z].getSocket_descriptor());
+                                                
+                                                bzero(buffer,sizeof(buffer));
+                                                strcpy(buffer, arrayTableros[arrayTableros.size()-1].board2string().c_str());
+                                                send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+                                                send(arrayClientes[z].getSocket_descriptor(),buffer,sizeof(buffer),0);
+                                                
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    else if(strBuffer.substr(0, 15) == "INICIAR-PARTIDA" && arrayTableros.size() > MAX_PARTIDAS) {
+
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "-Err. El servidor no puede alojar mas partidas, debe esperar");
+                                        send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+                                    }
+                                    else{
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "-Err. Busque contrincante con el comando \"INICIAR-PARTIDA\"");
+                                        send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+                                    }
                             	}
+                                //Si el usuario esta in_game se tendran en cuenta estos comandos
+                                else if(arrayClientes[client].getState() == "in_game") {
+                                    std::string Z, x; //letra y numero del tablero
+                                    
+                                    match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
+
+                                    if(strBuffer.substr(0, 10) == "DESCUBRIR " && arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()){
+
+                                        Z = strBuffer.substr(0, 1);//Primer caracter como parametro
+                                        if(strBuffer.substr(1, 1) == ","){//Se comprueba si hay una coma justo despues del caracter
+                                        	x = strBuffer.substr(2);
+                                        	x = clearString(x);
+                                        }
+                                        else
+                                        	x = "";
+
+                                        //Casilla introducida posible y no tiene bandera del jugador ni esta descubierta
+                                        if(arrayTableros[match].checkCoordinates(x, Z) && arrayTableros[match].isSecretBox(x, Z) && !arrayTableros[match].get_flagsBox(x, Z, arrayClientes[client].getSocket_descriptor())){
+                                        	//la casilla no tenia mina
+	                                        if(arrayTableros[match].revealBox(x, Z)) {
+
+	                                            bzero(buffer,sizeof(buffer));
+	                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
+	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
+	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
+
+	                                        }
+	                                        //la casilla tenia mina
+	                                        else {
+	                                            bzero(buffer,sizeof(buffer));
+	                                            sprintf(buffer, "+Ok. Jugador %s ha perdido la partida\n", arrayClientes[client].getLogin().c_str());
+	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
+	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
+
+	                                            bzero(buffer,sizeof(buffer));
+	                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
+	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
+	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
+
+	                                            enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
+
+	                                            arrayClientes[client].setState("registered");
+	                                            arrayClientes[enemyClient].setState("registered");
+
+	                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
+
+	                                            //borrar el tablero de esta partida
+	                                            arrayTableros.erase(arrayTableros.begin()+match);
+	                                        }
+
+                                            arrayTableros[match].changeTurn();
+	                                    }
+	                                    else{//Casilla invalida
+	                                    	bzero(buffer,sizeof(buffer));
+	                                    	sprintf(buffer, "-Err. Casilla introducida invalida, seleccione otra\n");
+	                                    	send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+	                                    }
+
+                                    }
+                                    else if(strBuffer.substr(0, 10) == "DESCUBRIR " && !arrayTableros[match].myTurn(arrayClientes[client].getSocket_descriptor()) && !(strBuffer = strBuffer.substr(10)).empty()) {
+
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "-Err. Es el turno del otro jugador\n");
+                                        send(arrayClientes[client].getSocket_descriptor(), buffer, sizeof(buffer), 0);
+                                    }
+                                }
                             }
                             //Si el cliente introdujo ctrl+c
                             if(recibidos == 0)
@@ -318,7 +474,7 @@ int main ( )
                                 std::cout << BCYAN << "+ El socket " << GREEN << arrayClientes[client].getSocket_descriptor() << BCYAN;
                                 std::cout << ", ha introducido " << BPURPLE << "ctrl+c" << RESET << std::endl;
                                 //Eliminar ese socket
-                                salirCliente(i,&readfds,&numClientes,arrayClientes);
+                                salirCliente(i, &readfds, arrayClientes);
                             }
                         }///////////////////////////////////////////////////////////////////
                     }
@@ -335,7 +491,7 @@ int main ( )
 
 }
 
-void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayClientes[]){
+void salirCliente(int socket, fd_set * readfds, std::vector<User> arrayClientes){
 
     char buffer[MSG_SIZE];
     int j;
@@ -345,35 +501,55 @@ void salirCliente(int socket, fd_set * readfds, int * numClientes, User arrayCli
     FD_CLR(socket,readfds);
 
     //Re-estructurar el array de clientes
-    for (j = 0; j < (*numClientes) - 1; j++){
+    for (j = 0; j < arrayClientes.size(); j++){
         if (arrayClientes[j].getSocket_descriptor() == socket)
             break;
     }
 
     cliente = arrayClientes[j].getLogin();
 
-    for (; j < (*numClientes) - 1; j++)
-        arrayClientes[j] = arrayClientes[j+1];
-
-    (*numClientes)--;
-
-    //Borra el slot de usuario que queda el ultimo
-    arrayClientes[*numClientes] = User();
+    arrayClientes.erase(arrayClientes.begin()+j);
 
     bzero(buffer,sizeof(buffer));
     if(!cliente.empty())
-        std::cout << BCYAN << "+ Desconexion del cliente: " << GREEN << cliente << " " << BYELLOW << "[" << *numClientes << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
+        std::cout << BCYAN << "+ Desconexion del cliente: " << GREEN << cliente << " " << BYELLOW << "[" << arrayClientes.size() << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
     else
-        std::cout << BCYAN << "+ Desconexion del cliente con socket: " << GREEN << socket << " " << BYELLOW << "[" << *numClientes << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
+        std::cout << BCYAN << "+ Desconexion del cliente con socket: " << GREEN << socket << " " << BYELLOW << "[" << arrayClientes.size() << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
     sprintf(buffer,"+Ok. Usuario desconectado\n");
 
-    for(j=0; j<(*numClientes); j++)
+    for(j=0; j<arrayClientes.size(); j++)
         if(arrayClientes[j].getSocket_descriptor() != socket)
-            send(arrayClientes[j].getSocket_descriptor(),buffer,strlen(buffer),0);
+            send(arrayClientes[j].getSocket_descriptor(),buffer,sizeof(buffer),0);
 
 
 }
 
+int idPartida(std::vector <minesweeper_board> arrayTableros, int playersd) {
+    int match;
+
+    for(int i = 0; i < arrayTableros.size(); i++) {
+
+        if(arrayTableros[i].get_player1() == playersd || arrayTableros[i].get_player2() == playersd) {
+            match = i;
+            break;
+        }
+    }
+
+    return match;
+}
+
+int otherPlayer(std::vector <User> arrayClientes, std::vector <minesweeper_board> arrayTableros, int match, int client) {
+    int other;
+
+    for(int cont = 0; cont < arrayClientes.size(); cont++) {
+        if((arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player2() && cont != client) ||
+           (arrayClientes[cont].getSocket_descriptor() == arrayTableros[match].get_player1() && cont != client)) {
+            other = cont;
+        }
+    }
+
+    return other;
+}
 
 void manejador (int signum){
     printf("\nSe ha recibido la señal sigint\n");
@@ -382,12 +558,21 @@ void manejador (int signum){
     //Implementar lo que se desee realizar cuando ocurra la excepción de ctrl+c en el servidor
 }
 
-std::string clearString(const std::string & str){ //Limpia una cadena para quitar los \n e ignorar lo que haya mas alla de un espacio
+//Comprueba si un login tiene una sesion iniciada. client: Index del usuario que quiere conectar, user: nombre del login que se quiere usar
+bool userAlreadyConnected(int client, std::vector <User> arrayClientes){
+	for(int i = 0; i < arrayClientes.size(); i++){
+		if(client != i && arrayClientes[i].getLogin() == arrayClientes[client].getLogin())
+			return true;
+	}
+ 	return false;
+}
+
+std::string clearString(const std::string & str){ //Limpia una cadena para quitar los \n y espacios e ignorar lo que haya despues de ellos
 	std::string outStr = str;
 	int pos;
 
 	if((pos = outStr.find_first_of(" \n", 0)) != std::string::npos)
 		outStr.replace(pos, std::string::npos, "");
-	
+
 	return outStr;
 }
