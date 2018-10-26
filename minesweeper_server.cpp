@@ -450,6 +450,8 @@ int main ( )
 	                                            //borrar el tablero de esta partida
 	                                            arrayTableros.erase(arrayTableros.begin()+match);
 	                                        }
+
+                                            arrayTableros[match].changeTurn();
 	                                    }
 	                                    else{//Casilla invalida
 	                                    	bzero(buffer,sizeof(buffer));

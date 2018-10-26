@@ -145,8 +145,6 @@ bool minesweeper_board::revealBox(std::string fila, std::string columna){
 
 	}
 
-	changeTurn();
-
 	return true;
 }
 
@@ -181,8 +179,6 @@ bool minesweeper_board::revealBox(int x, int y){
 
 	}
 
-	changeTurn();
-
 	return true;
 }
 
@@ -209,8 +205,6 @@ void minesweeper_board::set_flagBox(std::string fila, std::string columna, int p
 	changedPlayer = get_playerNumber(player);
 
 	board[x][y].setFlag(changedPlayer);
-
-	changeTurn();
 }
 
 std::string minesweeper_board::board2string() const{
