@@ -276,7 +276,7 @@ int main ( )
                                                 if(!userAlreadyConnected(client, arrayClientes)){//El login que inicia sesion no tiene una sesion iniciada
 		                        					arrayClientes[client].setState("registered");
 		                        					bzero(buffer,sizeof(buffer));
-		                        					sprintf(buffer, "+Ok. Usuario validado");
+													sprintf(buffer, "+Ok. Usuario validado. Escriba \"INICIAR-PARTIDA\" para entrar en cola");
 	                        					}
 	                        					else{
 	                        						arrayClientes[client].setLogin("");
@@ -328,7 +328,7 @@ int main ( )
 	                        				if(arrayClientes[client].registerUser("userList") == 0){
 
 	                        					arrayClientes[client].setState("registered");
-	                        					sprintf(buffer, "+Ok. Usuario registrado, sesion iniciada");
+												sprintf(buffer, "+Ok. Usuario registrado, sesion iniciada. Escriba \"INICIAR-PARTIDA\" para entrar en cola");
 
 	                        				}
 	                        				else{
@@ -445,17 +445,21 @@ int main ( )
 	                                        }
 	                                        //la casilla tenia mina
 	                                        else {
-	                                            bzero(buffer,sizeof(buffer));
-	                                            sprintf(buffer, "+Ok. Jugador %s ha perdido la partida\n", arrayClientes[client].getLogin().c_str());
-	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
-	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
+
+                                                enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
+
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "+Ok. Enhorabuena! Has ganado la partida contra %s\n", (arrayClientes[client].getLogin()).c_str());
+                                                send(arrayClientes[enemyClient].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "+Ok. Has perdido la partida contra %s, pero bien jugado!\n", (arrayClientes[enemyClient].getLogin()).c_str());
+                                                send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
 
 	                                            bzero(buffer,sizeof(buffer));
 	                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
 	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
 	                                            send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
-
-	                                            enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
 
 	                                            arrayClientes[client].setState("registered");
 	                                            arrayClientes[enemyClient].setState("registered");
@@ -552,6 +556,12 @@ int main ( )
 
                                         bzero(buffer,sizeof(buffer));
                                         sprintf(buffer, "-Err. No puede poner mas banderas\n");
+                                        send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+                                    }
+                                    //comando invalido
+                                    else {
+                                        bzero(buffer,sizeof(buffer));
+                                        sprintf(buffer, "-Err. Utilice los comandos \"DESCUBRIR\" o \"PONER-BANDERA\" para jugar\n");
                                         send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
                                     }
                                 }
