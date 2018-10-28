@@ -243,7 +243,6 @@ int main ( )
 
                                 }
 
-
                                 //Si el usuario no ha iniciado sesion aun se tendran en cuenta estos comandos
                                 else if(arrayClientes[client].getState() == "not_registered"){
 	                        		//Comando USUARIO usuario
@@ -437,6 +436,11 @@ int main ( )
                                         	//la casilla no tenia mina
 	                                        if(arrayTableros[match].revealBox(x, Z)) {
 
+                                                bzero(buffer,sizeof(buffer));
+                                                sprintf(buffer, "+Ok. El jugador %s ha descubierto la casilla %s,%s\n", (arrayClientes[client].getLogin()).c_str(), Z.c_str(), x.c_str());
+                                                send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
+                                                send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
+
 	                                            bzero(buffer,sizeof(buffer));
 	                                            strcpy(buffer, arrayTableros[match].board2string().c_str());
 	                                            send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
@@ -499,12 +503,20 @@ int main ( )
 
                                             arrayTableros[match].set_flagBox(x, Z, arrayClientes[client].getSocket_descriptor());
 
+                                            enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
+
+                                            bzero(buffer,sizeof(buffer));
+                                            sprintf(buffer, "+Ok. El jugador %s ha puesto bandera en la casilla %s,%s\n", (arrayClientes[client].getLogin()).c_str(), Z.c_str(), x.c_str());
+                                            send(arrayClientes[enemyClient].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
+                                            bzero(buffer,sizeof(buffer));
+                                            sprintf(buffer, "+Ok. Bandera colocada en la casilla %s,%s. Quedan [%d/%d] banderas\n", Z.c_str(), x.c_str(), MAX_BANDERAS - arrayTableros[match].get_nFlags(arrayClientes[client].getSocket_descriptor()), MAX_BANDERAS);
+                                            send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
                                             bzero(buffer,sizeof(buffer));
                                             strcpy(buffer, arrayTableros[match].board2string().c_str());
                                             send(arrayTableros[match].get_player1(),buffer,sizeof(buffer),0);
                                             send(arrayTableros[match].get_player2(),buffer,sizeof(buffer),0);
-
-                                            enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
 
                                             arrayTableros[match].changeTurn();
 
