@@ -91,7 +91,7 @@ int main (int argc, char * argv[])
 
             if(strstr(buffer, "+Ok.") != NULL) {
 				std::cout << CLEAR_SCREEN;
-			    PLACE(1,25);
+			    PLACE(1,30);
 			    std::cout << BBLUE << "MINESWEEPER [" << BGREEN << "ONLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
 
 				std::cout << std::endl  << BCYAN << buffer << RESET << std::endl;
@@ -111,7 +111,7 @@ int main (int argc, char * argv[])
             else{
 
 				std::cout << CLEAR_SCREEN;
-			    PLACE(1,25);
+			    PLACE(1,30);
 			    std::cout << BBLUE << "MINESWEEPER [" << BGREEN << "ONLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
 
 			    std::cout << BCYAN << lastMSG << RESET << std::endl;
@@ -141,7 +141,7 @@ int main (int argc, char * argv[])
     close(sd);
 
     std::cout << CLEAR_SCREEN;
-    PLACE(1,25);
+    PLACE(1,30);
     std::cout << BBLUE << "MINESWEEPER [" << BRED << "OFFLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
 
     return 0;

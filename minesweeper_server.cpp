@@ -27,15 +27,15 @@
 //maneja la recepcion de la señal SIGINT
 void manejador(int signum);
 //gestiona la salida de un cliente del servidor, sin que afecte a los demas clientes
-void salirCliente(int socket, fd_set * readfds, std::vector <User> arrayClientes);
+void salirCliente(int socket, fd_set * readfds, std::vector <User> & arrayClientes);
 //dado el socket de un cliente, busca la partida en la que se encuentra
-int idPartida(std::vector <minesweeper_board> arrayTableros, int playersd);
+int idPartida(const std::vector <minesweeper_board> & arrayTableros, int playersd);
 //dado un cliente y una partida, busca el contrincante de dicho cliente en esa partida
-int otherPlayer(std::vector <User> arrayClientes, std::vector <minesweeper_board> arrayTableros, int match, int client);
+int otherPlayer(const std::vector <User> & arrayClientes, const std::vector <minesweeper_board> & arrayTableros, int match, int client);
 //Limpia una cadena para quitar los \n y espacios e ignorar lo que haya despues de ellos
 std::string clearString(const std::string & str);
 //Comprueba si un login tiene una sesion iniciada. client: Index del usuario que quiere conectar, user: nombre del login que se quiere usar
-bool userAlreadyConnected(int client, std::vector <User> arrayClientes);
+bool userAlreadyConnected(int client, const std::vector <User> & arrayClientes);
 
 int main ( )
 {
@@ -172,13 +172,13 @@ int main ( )
                                     std::cout << BCYAN << "+ Nuevo usuario conectado " << BYELLOW << "[" << arrayClientes.size() << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
                                     strcpy(buffer, "+Ok. Usuario conectado\n");
 
-                                    send(new_sd,buffer,strlen(buffer),0);
+                                    send(new_sd,buffer,sizeof(buffer),0);
                                 }
                                 else
                                 {
                                     bzero(buffer,sizeof(buffer));
                                     strcpy(buffer,"-Err. Demasiados clientes conectados\n");
-                                    send(new_sd,buffer,strlen(buffer),0);
+                                    send(new_sd,buffer,sizeof(buffer),0);
                                     close(new_sd);
                                 }
 
@@ -464,7 +464,7 @@ int main ( )
 	                                            arrayClientes[client].setState("registered");
 	                                            arrayClientes[enemyClient].setState("registered");
 
-	                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
+	                                            std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BGREEN << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
 
 	                                            //borrar el tablero de esta partida
 	                                            arrayTableros.erase(arrayTableros.begin()+match);
@@ -520,6 +520,8 @@ int main ( )
                                                     bzero(buffer,sizeof(buffer));
                                                     sprintf(buffer, "+Ok. Has perdido la partida contra %s, pero bien jugado!\n", (arrayClientes[client].getLogin()).c_str());
                                                     send(arrayClientes[enemyClient].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
+                                                    std::cout << BCYAN << "+ Partida terminada: " << BGREEN << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
                                                 }
                                                 //este cliente ha perdido
                                                 else {
@@ -531,12 +533,12 @@ int main ( )
                                                     bzero(buffer,sizeof(buffer));
                                                     sprintf(buffer, "+Ok. Has perdido la partida contra %s, pero bien jugado!\n", (arrayClientes[enemyClient].getLogin()).c_str());
                                                     send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
+
+                                                    std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BGREEN << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
                                                 }
 
                                                 arrayClientes[client].setState("registered");
                                                 arrayClientes[enemyClient].setState("registered");
-
-                                                std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
 
                                                 //borrar el tablero de esta partida
                                                 arrayTableros.erase(arrayTableros.begin()+match);
@@ -561,7 +563,7 @@ int main ( )
                                     //comando invalido
                                     else {
                                         bzero(buffer,sizeof(buffer));
-                                        sprintf(buffer, "-Err. Utilice los comandos \"DESCUBRIR\" o \"PONER-BANDERA\" para jugar\n");
+                                        sprintf(buffer, "-Err. Utilice los comandos \"DESCUBRIR columna,fila\" o \"PONER-BANDERA columna,fila\" para jugar\n");
                                         send(arrayClientes[client].getSocket_descriptor(),buffer,sizeof(buffer),0);
                                     }
                                 }
@@ -571,6 +573,23 @@ int main ( )
                             {
                                 std::cout << BCYAN << "+ El socket " << GREEN << arrayClientes[client].getSocket_descriptor() << BCYAN;
                                 std::cout << ", ha introducido " << BPURPLE << "ctrl+c" << RESET << std::endl;
+
+                                if(arrayClientes[client].getState() == "in_game") {
+
+                                    match = idPartida(arrayTableros, arrayClientes[client].getSocket_descriptor());
+                                    enemyClient = otherPlayer(arrayClientes, arrayTableros, match, client);
+
+                                    arrayClientes[enemyClient].setState("registered");
+
+                                    std::cout << BCYAN << "+ Partida terminada: " << BYELLOW << arrayClientes[client].getLogin() << " " << BRED << " VS " << BYELLOW << arrayClientes[enemyClient].getLogin() << RESET << std::endl;
+
+                                    //borrar el tablero de esta partida
+                                    arrayTableros.erase(arrayTableros.begin()+match);
+
+                                    bzero(buffer,sizeof(buffer));
+                                    sprintf(buffer, "+Ok. El otro jugador ha abandonado la partida");
+                                    send(arrayClientes[enemyClient].getSocket_descriptor(),buffer,sizeof(buffer),0);
+                                }
                                 //Eliminar ese socket
                                 salirCliente(i, &readfds, arrayClientes);
                             }
@@ -589,7 +608,7 @@ int main ( )
 
 }
 
-void salirCliente(int socket, fd_set * readfds, std::vector<User> arrayClientes){
+void salirCliente(int socket, fd_set * readfds, std::vector<User> & arrayClientes){
 
     char buffer[MSG_SIZE];
     int j;
@@ -613,16 +632,10 @@ void salirCliente(int socket, fd_set * readfds, std::vector<User> arrayClientes)
         std::cout << BCYAN << "+ Desconexion del cliente: " << GREEN << cliente << " " << BYELLOW << "[" << arrayClientes.size() << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
     else
         std::cout << BCYAN << "+ Desconexion del cliente con socket: " << GREEN << socket << " " << BYELLOW << "[" << arrayClientes.size() << "/" << MAX_CLIENTS << "]" << RESET << std::endl;
-    sprintf(buffer,"+Ok. Usuario desconectado\n");
-
-    for(j=0; j<arrayClientes.size(); j++)
-        if(arrayClientes[j].getSocket_descriptor() != socket)
-            send(arrayClientes[j].getSocket_descriptor(),buffer,sizeof(buffer),0);
-
 
 }
 
-int idPartida(std::vector <minesweeper_board> arrayTableros, int playersd) {
+int idPartida(const std::vector <minesweeper_board> & arrayTableros, int playersd) {
     int match;
 
     for(int i = 0; i < arrayTableros.size(); i++) {
@@ -636,7 +649,7 @@ int idPartida(std::vector <minesweeper_board> arrayTableros, int playersd) {
     return match;
 }
 
-int otherPlayer(std::vector <User> arrayClientes, std::vector <minesweeper_board> arrayTableros, int match, int client) {
+int otherPlayer(const std::vector <User> & arrayClientes, const std::vector <minesweeper_board> & arrayTableros, int match, int client) {
     int other;
 
     for(int cont = 0; cont < arrayClientes.size(); cont++) {
@@ -650,13 +663,11 @@ int otherPlayer(std::vector <User> arrayClientes, std::vector <minesweeper_board
 }
 
 void manejador (int signum){
-    printf("\nSe ha recibido la señal sigint\n");
-    signal(SIGINT,manejador);
-
-    //Implementar lo que se desee realizar cuando ocurra la excepción de ctrl+c en el servidor
+    std::cout << std::endl << BRED << "Se ha recibido la señal sigint al introducir " << BPURPLE << "ctrl+c" << RESET << std::endl;
+    std::cout << BRED << "Introduzca el comando \"SALIR\" para cerrar el servidor correctamente" << RESET << std::endl;
 }
 
-bool userAlreadyConnected(int client, std::vector <User> arrayClientes){
+bool userAlreadyConnected(int client, const std::vector <User> & arrayClientes){
 	for(int i = 0; i < arrayClientes.size(); i++){
 		if(client != i && arrayClientes[i].getLogin() == arrayClientes[client].getLogin())
 			return true;
