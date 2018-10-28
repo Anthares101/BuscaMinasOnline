@@ -35,6 +35,8 @@ int main (int argc, char * argv[])
     int fin = 0;
 
 
+    std::string lastMSG;
+
 	/* --------------------------------------------------
 		Se abre el socket
 	---------------------------------------------------*/
@@ -73,7 +75,6 @@ int main (int argc, char * argv[])
     FD_SET(0,&readfds);
     FD_SET(sd,&readfds);
 
-
 	/* ------------------------------------------------------------------
 		Se transmite la información
 	-------------------------------------------------------------------*/
@@ -88,13 +89,34 @@ int main (int argc, char * argv[])
             bzero(buffer,sizeof(buffer));
             recv(sd,buffer,sizeof(buffer),0);
 
-            if(strstr(buffer, "+Ok.") != NULL || strstr(buffer, "-Err.") != NULL) {
-            	std::cout << std::endl << buffer << std::endl;
+            if(strstr(buffer, "+Ok.") != NULL) {
+				std::cout << CLEAR_SCREEN;
+			    PLACE(1,30);
+			    std::cout << BBLUE << "MINESWEEPER [" << BGREEN << "ONLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
 
-	            if(strcmp(buffer,"-Err. Demasiados clientes conectados\n") == 0 || strcmp(buffer,"-Err. Desconexion servidor\n") == 0)
-	                fin =1;
+				std::cout << std::endl  << BCYAN << buffer << RESET << std::endl;
+
+				lastMSG = buffer;
+
+            }
+            else if(strstr(buffer, "-Err.") != NULL) {
+
+				std::cout << std::endl  << BRED << buffer << RESET << std::endl;
+
+				if(strcmp(buffer,"-Err. Demasiados clientes conectados\n") == 0 || strcmp(buffer,"-Err. Desconexion servidor\n") == 0) {
+					fin = 1;
+				}
+
             }
             else{
+
+				std::cout << CLEAR_SCREEN;
+			    PLACE(1,30);
+			    std::cout << BBLUE << "MINESWEEPER [" << BGREEN << "ONLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
+
+			    std::cout << BCYAN << lastMSG << RESET << std::endl;
+
+				PLACE(5, 1);
             	print_board(buffer);
             	std::cout << std::endl << std::endl;
             }
@@ -103,18 +125,43 @@ int main (int argc, char * argv[])
         else if(FD_ISSET(0,&auxfds)){
 	        //He introducido información por teclado
 
-            bzero(buffer,sizeof(buffer));
-            fgets(buffer,sizeof(buffer),stdin);
+			bzero(buffer,sizeof(buffer));
+	        fgets(buffer,sizeof(buffer),stdin);
 
-            if(strcmp(buffer,"SALIR\n") == 0)
-                    fin = 1;
+			if(strcmp(buffer, "AYUDA\n") == 0) {
 
-            send(sd,buffer,sizeof(buffer),0);
+			    std::cout << std::endl << BBLUE << "LISTA DE COMANDOS:" << std::endl << std::endl << RESET;
+
+			    std::cout << "AYUDA" << BCYAN << " | Imprime este mensaje\n" << RESET;
+			    std::cout << "SALIR" << BCYAN << " | Salir del sistema\n\n" << RESET;
+			    std::cout << BYELLOW << "[ANTES DE INICIAR SESION]\n" << RESET;
+			    std::cout << "REGISTRO -u <login> -p <password>" << BCYAN << " | Resgistrarse en el sistema\n" << RESET;
+			    std::cout << "USUARIO <login>" << BCYAN << " | Introducir login de usuario\n" << RESET;
+			    std::cout << "PASSWORD <password>" << BCYAN << " | Introducir la conntraseña de usuario\n\n" << RESET;
+			    std::cout << BYELLOW << "[SESION INICIADA]\n" << RESET;
+			    std::cout << "INICIAR-PARTIDA" << BCYAN << " | Entrar en cola en busca de partida\n\n" << RESET;
+			    std::cout << BYELLOW << "[EN PARTIDA]\n" << RESET;
+			    std::cout << "DESCUBRIR <columna,fila>" << BCYAN << " | Descubre la casilla con las coordenadas especificadas\n" << RESET;
+			    std::cout << "PONER-BANDERA <columna,fila>" << BCYAN << " | Pone una bandera en la casilla con las coordenadas especificadas\n" << RESET << std::endl;
+
+			}
+			else {
+
+	            if(strcmp(buffer,"SALIR\n") == 0) {
+	                fin = 1;
+	            }
+
+	            send(sd,buffer,sizeof(buffer),0);
+	        }
         }
 
     }while(fin == 0);
 
     close(sd);
+
+    std::cout << CLEAR_SCREEN;
+    PLACE(1,30);
+    std::cout << BBLUE << "MINESWEEPER [" << BRED << "OFFLINE" << BBLUE << "]" << RESET << std::endl << std::endl;
 
     return 0;
 
@@ -129,17 +176,19 @@ void print_board(char* board) {
 
 	std::cout << "     ";
 
-	std::cout << " [A]  [B]  [C]  [D]  [E]  [F]  [G]  [H]  [I]  [J] ";
+	std::cout << BYELLOW << " [A]  [B]  [C]  [D]  [E]  [F]  [G]  [H]  [I]  [J] " << RESET;
 
 	std::cout << std::endl;
 
 	while(i < strlen(board)) {
 
-		if(i == 0) std::cout << " [0] ";
+		if(i == 0) {
+			std::cout << BYELLOW << " [0] " << RESET;
+		}
 
 		if(c == ";") {
 
-			std::cout << " [" << j << "] ";
+			std::cout << BYELLOW << " [" << j << "] " << RESET;
 			j++;
 
 		}
@@ -156,10 +205,40 @@ void print_board(char* board) {
 			i++;
 		}
 
-		if(c != "," && c != ";" && c != "AB") std::cout << "  " << c << "  ";
-		else if(c == "AB") std::cout << "  " << c << " ";
+		if(c != "," && c != ";" && c != "AB") {
+			if(c == "0") {
+				std::cout << BWHITE << "  " << c << "  " << RESET;
+			}
+			else if(c == "1") {
+				std::cout << BBLUE << "  " << c << "  " << RESET;
+			}
+			else if(c == "2") {
+				std::cout << BGREEN << "  " << c << "  " << RESET;
+			}
+			else if(c == "-") {
+				std::cout << BWHITE << "  " << c << "  " << RESET;
+			}
+			else if(c == "A") {
+				std::cout << BYELLOW << "  " << c << "  " << RESET;
+			}
+			else if(c == "B") {
+				std::cout << BPURPLE << "  " << c << "  " << RESET;
+			}
+			else if(c == "*") {
+				std::cout << BCYAN << "  " << c << "  " << RESET;
+			}
+			else {
+				std::cout << BRED << "  " << c << "  " << RESET;
+			}
 
-		if(c == ";") std::cout << std::endl;
+		}
+		else if(c == "AB") {
+			std::cout << BYELLOW << "  " << c[0] << BPURPLE << c[1] << " " << RESET;
+		}
+
+		if(c == ";") {
+			std::cout << std::endl;
+		}
 
 	}
 
